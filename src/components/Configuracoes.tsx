@@ -48,9 +48,9 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
   const handleSalvar = () => {
     const taxa = parseFloat(taxaInput)
     const taxaFixa = parseFloat(taxaFixaInput)
-    const cotacao = cotacaoInput ? parseFloat(cotacaoInput) : null
+    const cotacao = cotacaoInput ? parseFloat(cotacaoInput.replace(',', '.')) : null
     if (isNaN(taxa) || taxa < 0 || taxa >= 100) {
-      onToast('Taxa percentual inválida (deve ser entre 0 e 100)', 'erro')
+      onToast('Taxa percentual inválida (0–100)', 'erro')
       return
     }
     if (isNaN(taxaFixa) || taxaFixa < 0) {
@@ -111,28 +111,54 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
     setCotacaoInput('')
   }
 
+  // Preview do cálculo
+  const taxaNum = parseFloat(taxaInput) || 0
+  const taxaFixaNum = parseFloat(taxaFixaInput) || 0
+  const exemploFormula = `Líquido = Bruto − (Bruto × ${taxaNum}%) − (€${taxaFixaNum} × nº vendas)`
+
   return (
     <div className="space-y-5">
-      <Section titulo="Configurações do Gateway" icon="⚙️">
+      <Section titulo="Gateway de Pagamento" icon="⚙️">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <Field label="Taxa percentual (%)" hint="Desconto proporcional ao valor bruto. Padrão: 28%">
+            <input
+              type="number" step="0.01" min="0" max="99"
+              value={taxaInput} onChange={e => setTaxaInput(e.target.value)}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Taxa fixa por venda (€)" hint="Desconto fixo por cada venda aprovada. Padrão: € 2,00">
+            <input
+              type="number" step="0.01" min="0"
+              value={taxaFixaInput} onChange={e => setTaxaFixaInput(e.target.value)}
+              className={inputClass}
+            />
+          </Field>
+        </div>
+
+        <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-800 rounded-xl p-3 text-xs text-blue-700 dark:text-blue-300 mb-5 font-mono">
+          {exemploFormula}
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-          <Field label="Taxa percentual do Gateway (%)" hint="Desconto sobre o valor bruto. Padrão: 28%">
-            <input type="number" step="0.01" min="0" max="99" value={taxaInput} onChange={e => setTaxaInput(e.target.value)} className={inputClass} />
+          <Field label="Nome no relatório" hint='Aparece como "VENDAS [NOME]" no cabeçalho'>
+            <input
+              type="text" value={nomeInput}
+              onChange={e => setNomeInput(e.target.value)}
+              placeholder="OP | PORTUGAL"
+              className={inputClass}
+            />
           </Field>
-          <Field label="Taxa fixa por venda (€)" hint="Valor fixo descontado por cada venda aprovada. Padrão: € 2,00">
-            <input type="number" step="0.01" min="0" value={taxaFixaInput} onChange={e => setTaxaFixaInput(e.target.value)} className={inputClass} />
+          <Field label="Cotação EUR/BRL" hint="Usada em todos os cálculos de conversão para reais">
+            <input
+              type="text" inputMode="decimal"
+              value={cotacaoInput} onChange={e => setCotacaoInput(e.target.value)}
+              placeholder="Ex: 5.83"
+              className={inputClass}
+            />
           </Field>
         </div>
-        <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-800 rounded-xl p-3 text-xs text-blue-700 dark:text-blue-300 mb-5">
-          <strong>Cálculo do líquido:</strong> Bruto − (Bruto × {taxaInput || 0}%) − (€{taxaFixaInput || 0} × nº vendas)
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-          <Field label="Nome no relatório" hint='Aparece como "VENDAS [NOME]" no cabeçalho do relatório'>
-            <input type="text" value={nomeInput} onChange={e => setNomeInput(e.target.value)} placeholder="OP | PORTUGAL" className={inputClass} />
-          </Field>
-          <Field label="Cotação manual EUR/BRL" hint="Usada automaticamente quando a API estiver indisponível">
-            <input type="number" step="0.0001" min="0" value={cotacaoInput} onChange={e => setCotacaoInput(e.target.value)} placeholder="Ex: 6.2134" className={inputClass} />
-          </Field>
-        </div>
+
         <div className="flex flex-wrap gap-3">
           <button
             onClick={handleSalvar}
@@ -155,10 +181,10 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
 
       <Section titulo="Dados e Backup" icon="💾">
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-          {lancamentos.length} lançamento{lancamentos.length !== 1 ? 's' : ''} armazenado{lancamentos.length !== 1 ? 's' : ''} no navegador (localStorage).
+          {lancamentos.length} lançamento{lancamentos.length !== 1 ? 's' : ''} armazenado{lancamentos.length !== 1 ? 's' : ''} no navegador.
         </p>
         <p className="text-xs text-gray-400 dark:text-gray-500 mb-5">
-          Os dados persistem mesmo após fechar o browser ou reiniciar o computador. Só são perdidos se limpar os dados do site manualmente.
+          Os dados persistem ao fechar o browser ou reiniciar o computador. Só são perdidos se limpar os dados do site manualmente.
         </p>
         <div className="flex flex-wrap gap-3">
           <button

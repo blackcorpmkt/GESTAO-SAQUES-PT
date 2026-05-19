@@ -7,26 +7,27 @@ import { Configuracoes } from './components/Configuracoes'
 import { ToastContainer } from './components/Toast'
 import { useLancamentos } from './hooks/useLancamentos'
 import { useConfig } from './hooks/useConfig'
-import { useCotacao } from './hooks/useCotacao'
 import { useToast } from './hooks/useToast'
 import { useDarkMode } from './hooks/useDarkMode'
 
 type Aba = 'dashboard' | 'lancamentos' | 'relatorio' | 'configuracoes'
 
 const ABAS: { key: Aba; label: string; icon: string }[] = [
-  { key: 'dashboard', label: 'Dashboard', icon: '◈' },
-  { key: 'lancamentos', label: 'Lançamentos', icon: '≡' },
-  { key: 'relatorio', label: 'Relatório', icon: '📄' },
-  { key: 'configuracoes', label: 'Configurações', icon: '⚙' },
+  { key: 'dashboard',      label: 'Dashboard',      icon: '◈' },
+  { key: 'lancamentos',    label: 'Lançamentos',     icon: '≡' },
+  { key: 'relatorio',      label: 'Relatório',       icon: '📄' },
+  { key: 'configuracoes',  label: 'Configurações',   icon: '⚙' },
 ]
 
 export default function App() {
   const [aba, setAba] = useState<Aba>('dashboard')
   const { config, updateConfig, resetConfig } = useConfig()
   const { lancamentos, addLancamento, toggleStatus, deleteLancamento, importLancamentos } = useLancamentos()
-  const cotacao = useCotacao(config.cotacao_manual)
   const { toasts, addToast, removeToast } = useToast()
   const { darkMode, toggleDarkMode } = useDarkMode()
+
+  // Cotação vem direto do config — sem API, sem hook intermediário
+  const cotacao = config.cotacao_manual
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
@@ -64,13 +65,8 @@ export default function App() {
 
             <button
               onClick={toggleDarkMode}
-              title={darkMode ? 'Ativar modo claro' : 'Ativar modo escuro'}
-              className="
-                w-9 h-9 flex items-center justify-center rounded-xl
-                bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600
-                text-gray-600 dark:text-gray-300
-                transition-all duration-150 text-base
-              "
+              title={darkMode ? 'Modo claro' : 'Modo escuro'}
+              className="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 transition-all duration-150 text-base"
             >
               {darkMode ? '☀' : '☾'}
             </button>
@@ -83,13 +79,11 @@ export default function App() {
           <>
             <Dashboard
               lancamentos={lancamentos}
-              cotacao={cotacao}
               config={config}
-              onAtualizarCotacao={cotacao.buscarCotacao}
               onUpdateConfig={updateConfig}
             />
             <LancamentoForm
-              cotacao={cotacao.valor}
+              cotacao={cotacao}
               taxaGateway={config.taxa_gateway}
               taxaFixaEur={config.taxa_fixa_eur}
               onAdd={addLancamento}
@@ -101,7 +95,7 @@ export default function App() {
         {aba === 'lancamentos' && (
           <>
             <LancamentoForm
-              cotacao={cotacao.valor}
+              cotacao={cotacao}
               taxaGateway={config.taxa_gateway}
               taxaFixaEur={config.taxa_fixa_eur}
               onAdd={addLancamento}

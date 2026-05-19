@@ -3,8 +3,6 @@ import { Lancamento, Config } from '../types'
 const KEYS = {
   lancamentos: 'gestao_saques:lancamentos',
   config: 'gestao_saques:config',
-  ultima_cotacao: 'gestao_saques:ultima_cotacao',
-  ultima_cotacao_ts: 'gestao_saques:ultima_cotacao_ts',
   dark_mode: 'gestao_saques:dark_mode',
 } as const
 
@@ -41,22 +39,7 @@ export function setConfig(config: Config): void {
   localStorage.setItem(KEYS.config, JSON.stringify(config))
 }
 
-export function getUltimaCotacao(): { valor: number; timestamp: number } | null {
-  try {
-    const valor = localStorage.getItem(KEYS.ultima_cotacao)
-    const ts = localStorage.getItem(KEYS.ultima_cotacao_ts)
-    if (valor && ts) return { valor: parseFloat(valor), timestamp: parseInt(ts) }
-  } catch { /* empty */ }
-  return null
-}
-
-export function setUltimaCotacao(valor: number): void {
-  localStorage.setItem(KEYS.ultima_cotacao, valor.toString())
-  localStorage.setItem(KEYS.ultima_cotacao_ts, Date.now().toString())
-}
-
 export function clearAll(): void {
-  Object.values(KEYS).forEach(k => {
-    if (k !== KEYS.dark_mode) localStorage.removeItem(k)
-  })
+  localStorage.removeItem(KEYS.lancamentos)
+  localStorage.removeItem(KEYS.config)
 }
