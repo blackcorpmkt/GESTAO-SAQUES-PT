@@ -1,11 +1,5 @@
 import { Lancamento, Config } from '../types'
 
-const KEYS = {
-  lancamentos: 'gestao_saques:lancamentos',
-  config: 'gestao_saques:config',
-  dark_mode: 'gestao_saques:dark_mode',
-} as const
-
 const CONFIG_DEFAULTS: Config = {
   taxa_gateway: 28,
   taxa_fixa_eur: 2,
@@ -13,9 +7,13 @@ const CONFIG_DEFAULTS: Config = {
   cotacao_manual: null,
 }
 
-export function getLancamentos(): Lancamento[] {
+// Chaves isoladas por usuário
+const launchesKey = (userId: string) => `gs_launches_${userId}`
+const settingsKey = (userId: string) => `gs_settings_${userId}`
+
+export function getLancamentosForUser(userId: string): Lancamento[] {
   try {
-    const raw = localStorage.getItem(KEYS.lancamentos)
+    const raw = localStorage.getItem(launchesKey(userId))
     const data: Lancamento[] = raw ? JSON.parse(raw) : []
     return data.map(l => ({ ...l, taxa_fixa_eur: l.taxa_fixa_eur ?? 0 }))
   } catch {
@@ -23,23 +21,23 @@ export function getLancamentos(): Lancamento[] {
   }
 }
 
-export function setLancamentos(lancamentos: Lancamento[]): void {
-  localStorage.setItem(KEYS.lancamentos, JSON.stringify(lancamentos))
+export function setLancamentosForUser(userId: string, lancamentos: Lancamento[]): void {
+  localStorage.setItem(launchesKey(userId), JSON.stringify(lancamentos))
 }
 
-export function getConfig(): Config {
+export function getConfigForUser(userId: string): Config {
   try {
-    const raw = localStorage.getItem(KEYS.config)
+    const raw = localStorage.getItem(settingsKey(userId))
     if (raw) return { ...CONFIG_DEFAULTS, ...JSON.parse(raw) }
   } catch { /* empty */ }
   return { ...CONFIG_DEFAULTS }
 }
 
-export function setConfig(config: Config): void {
-  localStorage.setItem(KEYS.config, JSON.stringify(config))
+export function setConfigForUser(userId: string, config: Config): void {
+  localStorage.setItem(settingsKey(userId), JSON.stringify(config))
 }
 
-export function clearAll(): void {
-  localStorage.removeItem(KEYS.lancamentos)
-  localStorage.removeItem(KEYS.config)
+export function clearUserData(userId: string): void {
+  localStorage.removeItem(launchesKey(userId))
+  localStorage.removeItem(settingsKey(userId))
 }

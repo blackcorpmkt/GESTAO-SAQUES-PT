@@ -1,40 +1,46 @@
-import { useState, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Lancamento } from '../types'
-import { getLancamentos, setLancamentos } from '../utils/storage'
+import { getLancamentosForUser, setLancamentosForUser } from '../utils/storage'
 
-export function useLancamentos() {
-  const [lancamentos, setLancamentosState] = useState<Lancamento[]>(getLancamentos)
+export function useLancamentos(userId: string) {
+  const [lancamentos, setLancamentosState] = useState<Lancamento[]>([])
+
+  useEffect(() => {
+    setLancamentosState(getLancamentosForUser(userId))
+  }, [userId])
 
   const addLancamento = useCallback((lancamento: Lancamento) => {
     setLancamentosState(prev => {
       const novo = [lancamento, ...prev]
-      setLancamentos(novo)
+      setLancamentosForUser(userId, novo)
       return novo
     })
-  }, [])
+  }, [userId])
 
   const toggleStatus = useCallback((id: string) => {
     setLancamentosState(prev => {
       const updated = prev.map(l =>
-        l.id === id ? { ...l, status: (l.status === 'pendente' ? 'recebido' : 'pendente') as Lancamento['status'] } : l
+        l.id === id
+          ? { ...l, status: (l.status === 'pendente' ? 'recebido' : 'pendente') as Lancamento['status'] }
+          : l
       )
-      setLancamentos(updated)
+      setLancamentosForUser(userId, updated)
       return updated
     })
-  }, [])
+  }, [userId])
 
   const deleteLancamento = useCallback((id: string) => {
     setLancamentosState(prev => {
       const filtered = prev.filter(l => l.id !== id)
-      setLancamentos(filtered)
+      setLancamentosForUser(userId, filtered)
       return filtered
     })
-  }, [])
+  }, [userId])
 
   const importLancamentos = useCallback((data: Lancamento[]) => {
-    setLancamentos(data)
+    setLancamentosForUser(userId, data)
     setLancamentosState(data)
-  }, [])
+  }, [userId])
 
   return { lancamentos, addLancamento, toggleStatus, deleteLancamento, importLancamentos }
 }

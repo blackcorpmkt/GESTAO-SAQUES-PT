@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Config } from '../types'
-import { getConfig, setConfig as saveConfig } from '../utils/storage'
+import { getConfigForUser, setConfigForUser } from '../utils/storage'
 
 const DEFAULTS: Config = {
   taxa_gateway: 28,
@@ -9,21 +9,25 @@ const DEFAULTS: Config = {
   cotacao_manual: null,
 }
 
-export function useConfig() {
-  const [config, setConfigState] = useState<Config>(getConfig)
+export function useConfig(userId: string) {
+  const [config, setConfigState] = useState<Config>(DEFAULTS)
+
+  useEffect(() => {
+    setConfigState(getConfigForUser(userId))
+  }, [userId])
 
   const updateConfig = useCallback((updates: Partial<Config>) => {
     setConfigState(prev => {
       const newConfig = { ...prev, ...updates }
-      saveConfig(newConfig)
+      setConfigForUser(userId, newConfig)
       return newConfig
     })
-  }, [])
+  }, [userId])
 
   const resetConfig = useCallback(() => {
-    saveConfig(DEFAULTS)
+    setConfigForUser(userId, DEFAULTS)
     setConfigState({ ...DEFAULTS })
-  }, [])
+  }, [userId])
 
   return { config, updateConfig, resetConfig }
 }

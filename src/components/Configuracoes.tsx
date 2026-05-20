@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react'
 import { Config, Lancamento } from '../types'
-import { clearAll } from '../utils/storage'
+import { clearUserData } from '../utils/storage'
+import { isDefaultAdminPassword, changePassword } from '../utils/authStorage'
+import { useAuth } from '../contexts/AuthContext'
 
 interface Props {
   config: Config
@@ -34,6 +36,9 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 }
 
 export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancamentos, onImport, onToast }: Props) {
+  const { currentUser } = useAuth()
+
+  // Configurações gerais
   const [taxaInput, setTaxaInput] = useState(config.taxa_gateway.toString())
   const [taxaFixaInput, setTaxaFixaInput] = useState(config.taxa_fixa_eur.toString())
   const [nomeInput, setNomeInput] = useState(config.nome_relatorio)
@@ -41,11 +46,20 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
   const [confirmReset, setConfirmReset] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
+  // Troca de senha
+  const [senhaAtual, setSenhaAtual] = useState('')
+  const [novaSenha, setNovaSenha] = useState('')
+  const [confirmarSenha, setConfirmarSenha] = useState('')
+  const [erroSenha, setErroSenha] = useState('')
+  const [showPasswords, setShowPasswords] = useState(false)
+
   const inputClass = `w-full border border-gray-200 dark:border-gray-600 rounded-xl px-3.5 py-2.5 text-sm
     bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100
     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`
 
-  const handleSalvar = () => {
+  const usingDefaultPassword = currentUser ? isDefaultAdminPassword(currentUser.userId) : false
+
+  const handleSalvarConfig = () => {
     const taxa = parseFloat(taxaInput)
     const taxaFixa = parseFloat(taxaFixaInput)
     const cotacao = cotacaoInput ? parseFloat(cotacaoInput.replace(',', '.')) : null
@@ -64,6 +78,28 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
       cotacao_manual: cotacao,
     })
     onToast('Configurações salvas!', 'sucesso')
+  }
+
+  const handleTrocarSenha = () => {
+    setErroSenha('')
+    if (!senhaAtual || !novaSenha || !confirmarSenha) {
+      setErroSenha('Preencha todos os campos.')
+      return
+    }
+    if (novaSenha !== confirmarSenha) {
+      setErroSenha('A nova senha e a confirmação não coincidem.')
+      return
+    }
+    if (!currentUser) return
+    const result = changePassword(currentUser.userId, senhaAtual, novaSenha)
+    if (!result.success) {
+      setErroSenha(result.error)
+      return
+    }
+    setSenhaAtual('')
+    setNovaSenha('')
+    setConfirmarSenha('')
+    onToast('Senha alterada com sucesso!', 'sucesso')
   }
 
   const handleExportarJSON = () => {
@@ -101,7 +137,7 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
       setTimeout(() => setConfirmReset(false), 3000)
       return
     }
-    clearAll()
+    if (currentUser) clearUserData(currentUser.userId)
     onResetConfig()
     onToast('Dados resetados para o padrão', 'info')
     setConfirmReset(false)
@@ -111,13 +147,77 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
     setCotacaoInput('')
   }
 
-  // Preview do cálculo
   const taxaNum = parseFloat(taxaInput) || 0
   const taxaFixaNum = parseFloat(taxaFixaInput) || 0
-  const exemploFormula = `Líquido = Bruto − (Bruto × ${taxaNum}%) − (€${taxaFixaNum} × nº vendas)`
 
   return (
     <div className="space-y-5">
+      {/* Aviso senha padrão */}
+      {usingDefaultPassword && (
+        <div className="rounded-2xl border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-5 py-4 flex items-start gap-3">
+          <span className="text-xl flex-shrink-0 mt-0.5">⚠️</span>
+          <div>
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+              Você está usando a senha padrão do administrador
+            </p>
+            <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+              Por segurança, altere sua senha na seção abaixo antes de continuar usando o sistema.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Segurança da conta */}
+      <Section titulo="Segurança da Conta" icon="🔐">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+          <Field label="Senha atual">
+            <input
+              type={showPasswords ? 'text' : 'password'}
+              value={senhaAtual}
+              onChange={e => setSenhaAtual(e.target.value)}
+              placeholder="••••••••"
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Nova senha">
+            <input
+              type={showPasswords ? 'text' : 'password'}
+              value={novaSenha}
+              onChange={e => setNovaSenha(e.target.value)}
+              placeholder="Min. 4 caracteres"
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Confirmar nova senha">
+            <input
+              type={showPasswords ? 'text' : 'password'}
+              value={confirmarSenha}
+              onChange={e => setConfirmarSenha(e.target.value)}
+              placeholder="Repita a nova senha"
+              className={inputClass}
+            />
+          </Field>
+        </div>
+        {erroSenha && (
+          <p className="text-xs text-red-600 dark:text-red-400 mb-3">✕ {erroSenha}</p>
+        )}
+        <div className="flex flex-wrap gap-3 items-center">
+          <button
+            onClick={handleTrocarSenha}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md"
+          >
+            Alterar Senha
+          </button>
+          <button
+            onClick={() => setShowPasswords(p => !p)}
+            className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          >
+            {showPasswords ? '🙈 Ocultar senhas' : '👁 Mostrar senhas'}
+          </button>
+        </div>
+      </Section>
+
+      {/* Gateway */}
       <Section titulo="Gateway de Pagamento" icon="⚙️">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <Field label="Taxa percentual (%)" hint="Desconto proporcional ao valor bruto. Padrão: 28%">
@@ -137,7 +237,7 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
         </div>
 
         <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-800 rounded-xl p-3 text-xs text-blue-700 dark:text-blue-300 mb-5 font-mono">
-          {exemploFormula}
+          Líquido = Bruto − (Bruto × {taxaNum}%) − (€{taxaFixaNum} × nº vendas)
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
@@ -161,7 +261,7 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
 
         <div className="flex flex-wrap gap-3">
           <button
-            onClick={handleSalvar}
+            onClick={handleSalvarConfig}
             className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md"
           >
             Salvar Configurações
@@ -179,12 +279,13 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
         </div>
       </Section>
 
+      {/* Dados e backup */}
       <Section titulo="Dados e Backup" icon="💾">
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
           {lancamentos.length} lançamento{lancamentos.length !== 1 ? 's' : ''} armazenado{lancamentos.length !== 1 ? 's' : ''} no navegador.
         </p>
         <p className="text-xs text-gray-400 dark:text-gray-500 mb-5">
-          Os dados persistem ao fechar o browser ou reiniciar o computador. Só são perdidos se limpar os dados do site manualmente.
+          Os dados persistem ao fechar o browser ou reiniciar o computador.
         </p>
         <div className="flex flex-wrap gap-3">
           <button
