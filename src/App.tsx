@@ -1,29 +1,48 @@
-import { useCallback, useMemo } from 'react'
-import { Routes, Route, NavLink, Navigate } from 'react-router-dom'
+import { useState, useCallback } from 'react'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { Menu, Sun, Moon } from 'lucide-react'
 import { useAuth } from './contexts/AuthContext'
 import { Login } from './components/Login'
+import { Sidebar } from './components/Sidebar'
 import { Dashboard } from './components/Dashboard'
 import { LancamentoForm } from './components/LancamentoForm'
 import { LancamentosTable } from './components/LancamentosTable'
-import { CalculadoraLucro } from './components/CalculadoraLucro'
+import { DivisaoLucro } from './components/DivisaoLucro'
+import { Socios } from './components/Socios'
+import { AdminPanel } from './components/AdminPanel'
 import { Relatorio } from './components/Relatorio'
 import { Configuracoes } from './components/Configuracoes'
 import { GerenciamentoUsuarios } from './components/GerenciamentoUsuarios'
+import { EditarPerfil } from './components/EditarPerfil'
 import { ToastContainer } from './components/Toast'
-import { UserMenu } from './components/UserMenu'
 import { useLancamentos } from './hooks/useLancamentos'
 import { useConfig } from './hooks/useConfig'
+import { usePartners } from './hooks/usePartners'
+import { useLaunchCosts } from './hooks/useLaunchCosts'
 import { useToast } from './hooks/useToast'
 import { useDarkMode } from './hooks/useDarkMode'
 
+const COLLAPSE_KEY = 'gestao_saques:sidebar_collapsed'
+
+const TITLES: Record<string, string> = {
+  '/dashboard': 'Dashboard',
+  '/lancamentos': 'Lançamentos',
+  '/divisao-lucro': 'Divisão de Lucro',
+  '/relatorio': 'Relatório',
+  '/socios': 'Sócios',
+  '/usuarios': 'Usuários',
+  '/admin': 'Admin',
+  '/configuracoes': 'Configurações',
+}
+
 function LoadingScreen() {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
       <div className="text-center">
         <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl flex items-center justify-center text-white font-bold text-xl mx-auto mb-3 animate-pulse shadow-lg">
           GS
         </div>
-        <p className="text-sm text-gray-400 dark:text-gray-500">Carregando...</p>
+        <p className="text-sm text-slate-400 dark:text-slate-500">Carregando...</p>
       </div>
     </div>
   )
@@ -33,178 +52,193 @@ function AppContent({ userId }: { userId: string }) {
   const { currentUser } = useAuth()
   const { toasts, addToast, removeToast } = useToast()
   const { darkMode, toggleDarkMode } = useDarkMode()
+  const location = useLocation()
 
-  // Callback estável para erros dos hooks — passa addToast sem criar função nova a cada render
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSE_KEY) === 'true')
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [editProfileOpen, setEditProfileOpen] = useState(false)
+
+  const toggleCollapse = useCallback(() => {
+    setCollapsed(c => {
+      const next = !c
+      localStorage.setItem(COLLAPSE_KEY, String(next))
+      return next
+    })
+  }, [])
+
+  // Callback estável para erros dos hooks
   const handleError = useCallback((msg: string) => addToast(msg, 'erro'), [addToast])
 
   const { config, updateConfig, resetConfig } = useConfig(userId, handleError)
   const { lancamentos, addLancamento, toggleStatus, deleteLancamento, importLancamentos, updateCotacao, applyCotacaoToPending } = useLancamentos(userId, handleError)
-
-  const ABAS = useMemo(() => {
-    const base: { to: string; label: string; icon: string }[] = [
-      { to: '/dashboard',     label: 'Dashboard',    icon: '◈' },
-      { to: '/lancamentos',   label: 'Lançamentos',  icon: '≡' },
-      { to: '/calculadora',   label: 'Calculadora',  icon: '🧮' },
-      { to: '/relatorio',     label: 'Relatório',    icon: '📄' },
-      { to: '/configuracoes', label: 'Configurações', icon: '⚙' },
-    ]
-    if (currentUser?.role === 'admin') {
-      base.push({ to: '/usuarios', label: 'Usuários', icon: '👥' })
-    }
-    return base
-  }, [currentUser?.role])
+  const { partners, loading: partnersLoading, addPartner, updatePartner } = usePartners(userId, handleError)
+  const { costs, addCost, removeCost } = useLaunchCosts(userId, handleError)
 
   const cotacao = config.cotacao_manual
+  const pageTitle = TITLES[location.pathname] ?? 'Dashboard'
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm sticky top-0 z-40 transition-colors duration-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between h-14">
-            {/* Logo */}
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center text-white font-bold text-xs shadow-sm">
-                GS
-              </div>
-              <div className="hidden sm:block">
-                <span className="font-bold text-gray-900 dark:text-white text-sm">Gestão de Saques</span>
-                <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">Portugal</span>
-              </div>
-            </div>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
+      <Sidebar
+        collapsed={collapsed}
+        onToggleCollapse={toggleCollapse}
+        mobileOpen={mobileOpen}
+        onCloseMobile={() => setMobileOpen(false)}
+        onEditProfile={() => setEditProfileOpen(true)}
+      />
 
-            {/* Navegação */}
-            <nav className="flex gap-0.5">
-              {ABAS.map(a => (
-                <NavLink
-                  key={a.to}
-                  to={a.to}
-                  className={({ isActive }) => `
-                    px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150
-                    ${isActive
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }
-                  `}
-                >
-                  <span className="hidden sm:inline">{a.label}</span>
-                  <span className="sm:hidden">{a.icon}</span>
-                </NavLink>
-              ))}
-            </nav>
+      <div className={`transition-all duration-200 ${collapsed ? 'md:pl-16' : 'md:pl-60'}`}>
+        {/* Topbar */}
+        <header className="sticky top-0 z-30 h-16 bg-white/85 dark:bg-slate-800/85 backdrop-blur border-b border-slate-200 dark:border-slate-700 flex items-center gap-3 px-4 sm:px-6">
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="md:hidden text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+            title="Abrir menu"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+          <h1 className="text-2xl font-semibold text-slate-800 dark:text-white flex-1 truncate">{pageTitle}</h1>
+          <button
+            onClick={toggleDarkMode}
+            title={darkMode ? 'Modo claro' : 'Modo escuro'}
+            className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 transition-colors flex-shrink-0"
+          >
+            {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+        </header>
 
-            {/* Ações à direita */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={toggleDarkMode}
-                title={darkMode ? 'Modo claro' : 'Modo escuro'}
-                className="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 transition-all duration-150 text-base flex-shrink-0"
-              >
-                {darkMode ? '☀' : '☾'}
-              </button>
-              <UserMenu onToast={addToast} />
-            </div>
-          </div>
-        </div>
-      </header>
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+          <Routes>
+            <Route
+              path="dashboard"
+              element={
+                <>
+                  <Dashboard
+                    lancamentos={lancamentos}
+                    config={config}
+                    onUpdateConfig={updateConfig}
+                  />
+                  <LancamentoForm
+                    cotacao={cotacao}
+                    taxaGateway={config.taxa_gateway}
+                    taxaFixaEur={config.taxa_fixa_eur}
+                    onAdd={addLancamento}
+                    onToast={addToast}
+                  />
+                </>
+              }
+            />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-5">
-        <Routes>
-          <Route
-            path="dashboard"
-            element={
-              <>
-                <Dashboard
+            <Route
+              path="lancamentos"
+              element={
+                <>
+                  <LancamentoForm
+                    cotacao={cotacao}
+                    taxaGateway={config.taxa_gateway}
+                    taxaFixaEur={config.taxa_fixa_eur}
+                    onAdd={addLancamento}
+                    onToast={addToast}
+                  />
+                  <LancamentosTable
+                    lancamentos={lancamentos}
+                    onToggleStatus={toggleStatus}
+                    onDelete={deleteLancamento}
+                    onUpdateCotacao={updateCotacao}
+                    onToast={addToast}
+                  />
+                </>
+              }
+            />
+
+            <Route
+              path="divisao-lucro"
+              element={
+                <DivisaoLucro
                   lancamentos={lancamentos}
+                  partners={partners}
+                  costs={costs}
+                  cotacao={cotacao}
+                  onAddCost={addCost}
+                  onRemoveCost={removeCost}
+                  onToast={addToast}
+                />
+              }
+            />
+
+            <Route
+              path="socios"
+              element={
+                <Socios
+                  partners={partners}
+                  loading={partnersLoading}
+                  onAdd={addPartner}
+                  onUpdate={updatePartner}
+                  onToast={addToast}
+                />
+              }
+            />
+
+            <Route
+              path="relatorio"
+              element={
+                <>
+                  <LancamentosTable
+                    lancamentos={lancamentos}
+                    onToggleStatus={toggleStatus}
+                    onDelete={deleteLancamento}
+                    onUpdateCotacao={updateCotacao}
+                    onToast={addToast}
+                  />
+                  <Relatorio
+                    lancamentos={lancamentos}
+                    nomeRelatorio={config.nome_relatorio}
+                    onToast={addToast}
+                  />
+                </>
+              }
+            />
+
+            <Route
+              path="configuracoes"
+              element={
+                <Configuracoes
                   config={config}
                   onUpdateConfig={updateConfig}
-                />
-                <LancamentoForm
-                  cotacao={cotacao}
-                  taxaGateway={config.taxa_gateway}
-                  taxaFixaEur={config.taxa_fixa_eur}
-                  onAdd={addLancamento}
-                  onToast={addToast}
-                />
-              </>
-            }
-          />
-
-          <Route
-            path="lancamentos"
-            element={
-              <>
-                <LancamentoForm
-                  cotacao={cotacao}
-                  taxaGateway={config.taxa_gateway}
-                  taxaFixaEur={config.taxa_fixa_eur}
-                  onAdd={addLancamento}
-                  onToast={addToast}
-                />
-                <LancamentosTable
+                  onResetConfig={resetConfig}
                   lancamentos={lancamentos}
-                  onToggleStatus={toggleStatus}
-                  onDelete={deleteLancamento}
-                  onUpdateCotacao={updateCotacao}
+                  onImport={importLancamentos}
+                  onApplyCotacaoPendentes={applyCotacaoToPending}
                   onToast={addToast}
                 />
-              </>
-            }
-          />
+              }
+            />
 
-          <Route
-            path="calculadora"
-            element={<CalculadoraLucro config={config} onToast={addToast} />}
-          />
+            <Route
+              path="usuarios"
+              element={
+                currentUser?.role === 'admin'
+                  ? <GerenciamentoUsuarios onToast={addToast} />
+                  : <Navigate to="/dashboard" replace />
+              }
+            />
 
-          <Route
-            path="relatorio"
-            element={
-              <>
-                <LancamentosTable
-                  lancamentos={lancamentos}
-                  onToggleStatus={toggleStatus}
-                  onDelete={deleteLancamento}
-                  onUpdateCotacao={updateCotacao}
-                  onToast={addToast}
-                />
-                <Relatorio
-                  lancamentos={lancamentos}
-                  nomeRelatorio={config.nome_relatorio}
-                  onToast={addToast}
-                />
-              </>
-            }
-          />
+            <Route
+              path="admin"
+              element={
+                currentUser?.role === 'admin'
+                  ? <AdminPanel onToast={addToast} />
+                  : <Navigate to="/dashboard" replace />
+              }
+            />
 
-          <Route
-            path="configuracoes"
-            element={
-              <Configuracoes
-                config={config}
-                onUpdateConfig={updateConfig}
-                onResetConfig={resetConfig}
-                lancamentos={lancamentos}
-                onImport={importLancamentos}
-                onApplyCotacaoPendentes={applyCotacaoToPending}
-                onToast={addToast}
-              />
-            }
-          />
-
-          <Route
-            path="usuarios"
-            element={
-              currentUser?.role === 'admin'
-                ? <GerenciamentoUsuarios onToast={addToast} />
-                : <Navigate to="/dashboard" replace />
-            }
-          />
-
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </main>
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </main>
+      </div>
 
       <ToastContainer toasts={toasts} onRemove={removeToast} />
+      <EditarPerfil isOpen={editProfileOpen} onClose={() => setEditProfileOpen(false)} onToast={addToast} />
     </div>
   )
 }

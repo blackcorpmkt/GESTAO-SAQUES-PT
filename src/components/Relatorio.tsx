@@ -174,15 +174,6 @@ export function Relatorio({ lancamentos, nomeRelatorio, onToast }: Props) {
             })}
           </div>
 
-          {/* Preview do relatório */}
-          <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700">
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-              Preview do relatório
-            </p>
-            <pre className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 text-sm font-mono text-gray-800 dark:text-gray-200 whitespace-pre-wrap overflow-x-auto leading-relaxed">
-              {texto}
-            </pre>
-          </div>
         </>
       )}
     </div>

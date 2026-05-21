@@ -70,27 +70,18 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
   const [modal, setModal] = useState<ModalState>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  // Edição inline do percentual na listagem
-  const [editandoPctId, setEditandoPctId] = useState<string | null>(null)
-  const [pctEdit, setPctEdit] = useState('')
-  const [savingPct, setSavingPct] = useState(false)
-
-  const totalPct = users.reduce((s, u) => s + u.percentage, 0)
-  const totalPctFmt = totalPct.toLocaleString('pt-BR', { maximumFractionDigits: 2 })
-
   // Estado do formulário de criação
   const [createForm, setCreateForm] = useState({
     display_name: '',
     username: '',
     email: '',
     password: '',
-    percentage: '',
     role: 'user' as 'admin' | 'user',
   })
   const [createError, setCreateError] = useState('')
 
   // Estado do formulário de edição
-  const [editForm, setEditForm] = useState({ display_name: '', percentage: '', active: true })
+  const [editForm, setEditForm] = useState({ display_name: '', active: true })
   const [editError, setEditError] = useState('')
 
   // Estado do formulário de reset de senha
@@ -98,7 +89,7 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
   const [resetError, setResetError] = useState('')
 
   const openCreate = () => {
-    setCreateForm({ display_name: '', username: '', email: '', password: '', percentage: '', role: 'user' })
+    setCreateForm({ display_name: '', username: '', email: '', password: '', role: 'user' })
     setCreateError('')
     setModal({ type: 'create' })
   }
@@ -106,7 +97,6 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
   const openEdit = (user: UserRecord) => {
     setEditForm({
       display_name: user.displayName,
-      percentage: String(user.percentage),
       active: user.active,
     })
     setEditError('')
@@ -119,37 +109,15 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
     setModal({ type: 'resetPassword', user })
   }
 
-  const confirmarPct = async (u: UserRecord) => {
-    const val = parseFloat(pctEdit.replace(',', '.'))
-    if (isNaN(val) || val < 0 || val > 100) {
-      onToast('Percentual deve ser entre 0 e 100.', 'erro')
-      return
-    }
-    setSavingPct(true)
-    const result = await updateUser(u.userId, { percentage: val })
-    setSavingPct(false)
-    if (!result.success) {
-      onToast(result.error ?? 'Erro ao atualizar percentual.', 'erro')
-      return
-    }
-    onToast(`Percentual de @${u.username} atualizado!`, 'sucesso')
-    setEditandoPctId(null)
-  }
-
   const handleCreate = async () => {
     setCreateError('')
-    const { display_name, username, email, password, percentage, role } = createForm
+    const { display_name, username, email, password, role } = createForm
     if (!display_name.trim() || !username.trim() || !email.trim() || !password) {
       setCreateError('Preencha todos os campos.')
       return
     }
     if (password.length < 6) {
       setCreateError('Senha deve ter pelo menos 6 caracteres.')
-      return
-    }
-    const pct = parseFloat(percentage)
-    if (isNaN(pct) || pct < 0 || pct > 100) {
-      setCreateError('Percentual deve ser entre 0 e 100.')
       return
     }
     if (!/\S+@\S+\.\S+/.test(email)) {
@@ -163,7 +131,6 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
       username: username.trim().toLowerCase(),
       email: email.trim().toLowerCase(),
       password,
-      percentage: pct,
       role,
     })
     setSubmitting(false)
@@ -184,16 +151,9 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
       setEditError('Nome de exibição é obrigatório.')
       return
     }
-    const pct = parseFloat(editForm.percentage)
-    if (isNaN(pct) || pct < 0 || pct > 100) {
-      setEditError('Percentual deve ser entre 0 e 100.')
-      return
-    }
-
     setSubmitting(true)
     const result = await updateUser(modal.user.userId, {
       display_name: editForm.display_name.trim(),
-      percentage: pct,
       active: editForm.active,
     })
     setSubmitting(false)
@@ -275,7 +235,6 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Nome</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Username</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden md:table-cell">E-mail</th>
-                  <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">%</th>
                   <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Perfil</th>
                   <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="text-center px-5 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Ações</th>
@@ -295,47 +254,6 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
                     </td>
                     <td className="px-4 py-3.5 text-gray-400 dark:text-gray-500 hidden md:table-cell text-xs">
                       {u.email}
-                    </td>
-                    <td className="px-4 py-3.5 text-center">
-                      {editandoPctId === u.userId ? (
-                        <div className="flex items-center justify-center gap-1">
-                          <input
-                            type="number" min="0" max="100" step="0.01"
-                            value={pctEdit}
-                            onChange={e => setPctEdit(e.target.value)}
-                            onKeyDown={e => {
-                              if (e.key === 'Enter') confirmarPct(u)
-                              else if (e.key === 'Escape') setEditandoPctId(null)
-                            }}
-                            autoFocus
-                            className="w-16 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 text-xs text-center bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 tabular-nums"
-                          />
-                          <button
-                            onClick={() => confirmarPct(u)}
-                            disabled={savingPct}
-                            title="Confirmar percentual"
-                            className="w-6 h-6 flex items-center justify-center rounded-md bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white text-xs transition-colors"
-                          >
-                            ✓
-                          </button>
-                          <button
-                            onClick={() => setEditandoPctId(null)}
-                            title="Cancelar"
-                            className="w-6 h-6 flex items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400 text-xs transition-colors"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => { setEditandoPctId(u.userId); setPctEdit(String(u.percentage)) }}
-                          title="Editar percentual"
-                          className="inline-flex items-center gap-1 font-semibold text-gray-700 dark:text-gray-300 tabular-nums hover:text-blue-600 dark:hover:text-blue-400 transition-colors group"
-                        >
-                          {u.percentage}%
-                          <span className="text-xs text-gray-300 dark:text-gray-600 group-hover:text-blue-500">✎</span>
-                        </button>
-                      )}
                     </td>
                     <td className="px-4 py-3.5 text-center">
                       <RoleBadge role={u.role} />
@@ -363,17 +281,6 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
                 ))}
               </tbody>
             </table>
-          </div>
-        )}
-
-        {!loading && users.length > 0 && (
-          <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-700 flex justify-end">
-            <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
-              Soma total:{' '}
-              <span className={totalPct === 100 ? 'font-semibold text-emerald-600 dark:text-emerald-400' : 'font-semibold text-amber-600 dark:text-amber-400'}>
-                {totalPctFmt}%
-              </span>
-            </p>
           </div>
         )}
       </div>
@@ -428,31 +335,16 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Percentual de sociedade (%)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  value={createForm.percentage}
-                  onChange={e => setCreateForm(p => ({ ...p, percentage: e.target.value }))}
-                  placeholder="0–100"
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Perfil</label>
-                <select
-                  value={createForm.role}
-                  onChange={e => setCreateForm(p => ({ ...p, role: e.target.value as 'admin' | 'user' }))}
-                  className={inputClass}
-                >
-                  <option value="user">Usuário</option>
-                  <option value="admin">Administrador</option>
-                </select>
-              </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Perfil</label>
+              <select
+                value={createForm.role}
+                onChange={e => setCreateForm(p => ({ ...p, role: e.target.value as 'admin' | 'user' }))}
+                className={inputClass}
+              >
+                <option value="user">Usuário</option>
+                <option value="admin">Administrador</option>
+              </select>
             </div>
 
             {createError && (
@@ -490,19 +382,6 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
                 onChange={e => setEditForm(p => ({ ...p, display_name: e.target.value }))}
                 className={inputClass}
                 autoFocus
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Percentual de sociedade (%)</label>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                step="0.01"
-                value={editForm.percentage}
-                onChange={e => setEditForm(p => ({ ...p, percentage: e.target.value }))}
-                className={inputClass}
               />
             </div>
 

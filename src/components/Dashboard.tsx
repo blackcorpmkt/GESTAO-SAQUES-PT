@@ -1,7 +1,15 @@
 import { useState, useEffect } from 'react'
+import { Hourglass, CheckCircle2, CalendarDays, TrendingUp, type LucideIcon } from 'lucide-react'
 import { Lancamento, Config } from '../types'
 import { formatarMoedaBR, formatarEUR, parseDateBR, formatDateBR } from '../utils/formatacao'
 import { useAuth } from '../contexts/AuthContext'
+
+const CARD_COR: Record<string, string> = {
+  blue: 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400',
+  emerald: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400',
+  violet: 'bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400',
+  cyan: 'bg-cyan-100 text-cyan-600 dark:bg-cyan-900/40 dark:text-cyan-400',
+}
 
 interface Props {
   lancamentos: Lancamento[]
@@ -14,24 +22,25 @@ function MetricCard({
   valorBRL,
   valorEUR,
   badge,
-  icon,
+  Icon,
   cor,
 }: {
   titulo: string
   valorBRL: string
   valorEUR: string
   badge?: React.ReactNode
-  icon: string
-  cor: string
+  Icon: LucideIcon
+  cor: keyof typeof CARD_COR
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl p-5 shadow-sm border bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 transition-all duration-200 hover:shadow-md">
-      <div className={`absolute top-0 right-0 w-24 h-24 rounded-full opacity-10 -translate-y-6 translate-x-6 ${cor}`} />
+    <div className="rounded-xl p-5 shadow-sm border bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 transition-all duration-200 hover:shadow-md">
       <div className="flex items-start justify-between mb-3">
-        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{titulo}</p>
-        <span className={`text-xl ${cor.replace('bg-', 'text-')}`}>{icon}</span>
+        <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{titulo}</p>
+        <span className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${CARD_COR[cor]}`}>
+          <Icon className="w-5 h-5" />
+        </span>
       </div>
-      <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1 tabular-nums">{valorBRL}</p>
+      <p className="text-[28px] leading-tight font-bold text-gray-900 dark:text-white mb-1 tabular-nums">{valorBRL}</p>
       <p className="text-sm text-gray-400 dark:text-gray-500 font-medium tabular-nums">{valorEUR}</p>
       {badge && <div className="mt-2">{badge}</div>}
     </div>
@@ -109,13 +118,14 @@ export function Dashboard({ lancamentos, config, onUpdateConfig }: Props) {
     <div className="space-y-4">
       {/* Cards de métricas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="relative overflow-hidden rounded-2xl p-5 shadow-sm border bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 transition-all duration-200 hover:shadow-md">
-          <div className="absolute top-0 right-0 w-24 h-24 rounded-full opacity-10 -translate-y-6 translate-x-6 bg-cyan-500" />
+        <div className="rounded-xl p-5 shadow-sm border bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 transition-all duration-200 hover:shadow-md">
           <div className="flex items-start justify-between mb-3">
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Faturamento Bruto</p>
-            <span className="text-xl text-cyan-500">📈</span>
+            <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Faturamento Bruto</p>
+            <span className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 bg-cyan-100 text-cyan-600 dark:bg-cyan-900/40 dark:text-cyan-400">
+              <TrendingUp className="w-5 h-5" />
+            </span>
           </div>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1 tabular-nums">{formatarEUR(faturamentoBrutoEur)}</p>
+          <p className="text-[28px] leading-tight font-bold text-gray-900 dark:text-white mb-1 tabular-nums">{formatarEUR(faturamentoBrutoEur)}</p>
           <p className="text-sm text-gray-400 dark:text-gray-500 font-medium tabular-nums">
             {faturamentoBrutoBrl != null ? formatarMoedaBR(faturamentoBrutoBrl) : '—'}
           </p>
@@ -125,8 +135,8 @@ export function Dashboard({ lancamentos, config, onUpdateConfig }: Props) {
           titulo="A receber (pendentes)"
           valorBRL={formatarMoedaBR(totalPendenteBrl)}
           valorEUR={formatarEUR(totalPendenteEur)}
-          icon="⏳"
-          cor="bg-blue-500"
+          Icon={Hourglass}
+          cor="blue"
           badge={
             pendentes.length > 0 || showPct ? (
               <div className="flex flex-wrap gap-1.5">
@@ -149,8 +159,8 @@ export function Dashboard({ lancamentos, config, onUpdateConfig }: Props) {
           titulo="Total recebido"
           valorBRL={formatarMoedaBR(totalRecebidoBrl)}
           valorEUR={formatarEUR(totalRecebidoEur)}
-          icon="✅"
-          cor="bg-emerald-500"
+          Icon={CheckCircle2}
+          cor="emerald"
           badge={
             recebidos.length > 0 || showPct ? (
               <div className="flex flex-wrap gap-1.5">
@@ -170,13 +180,14 @@ export function Dashboard({ lancamentos, config, onUpdateConfig }: Props) {
         />
 
         {proximoRecebimento ? (
-          <div className="relative overflow-hidden rounded-2xl p-5 shadow-sm border bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:shadow-md transition-all duration-200">
-            <div className="absolute top-0 right-0 w-24 h-24 rounded-full opacity-10 -translate-y-6 translate-x-6 bg-violet-500" />
+          <div className="rounded-xl p-5 shadow-sm border bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:shadow-md transition-all duration-200">
             <div className="flex items-start justify-between mb-3">
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Próximo recebimento</p>
-              <span className="text-xl text-violet-500">📅</span>
+              <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Próximo recebimento</p>
+              <span className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400">
+                <CalendarDays className="w-5 h-5" />
+              </span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1 tabular-nums">
+            <p className="text-[28px] leading-tight font-bold text-gray-900 dark:text-white mb-1 tabular-nums">
               {formatarMoedaBR(proximoRecebimento.valor_brl)}
             </p>
             <p className="text-sm text-gray-400 dark:text-gray-500 font-medium tabular-nums">
@@ -195,7 +206,7 @@ export function Dashboard({ lancamentos, config, onUpdateConfig }: Props) {
             </div>
           </div>
         ) : (
-          <MetricCard titulo="Próximo recebimento" valorBRL="—" valorEUR="Sem pendentes" icon="📅" cor="bg-violet-500" />
+          <MetricCard titulo="Próximo recebimento" valorBRL="—" valorEUR="Sem pendentes" Icon={CalendarDays} cor="violet" />
         )}
       </div>
 

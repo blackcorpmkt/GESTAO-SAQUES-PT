@@ -1,39 +1,67 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
 export interface Partner {
-  displayName: string
-  username: string
+  id: string
+  name: string
   percentage: number
-  role: 'admin' | 'user'
+  active: boolean
 }
 
-type PartnerRow = {
-  display_name: string
-  username: string
+type Row = {
+  id: string
+  user_id: string
+  name: string
   percentage: number
-  role: string
+  active: boolean
+  created_at: string
 }
 
-export function usePartners(onError?: (msg: string) => void) {
+function mapRow(r: Row): Partner {
+  return { id: r.id, name: r.name, percentage: Number(r.percentage), active: r.active }
+}
+
+export function usePartners(userId: string, onError?: (msg: string) => void) {
   const [partners, setPartners] = useState<Partner[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    supabase.rpc('get_active_partners').then(({ data, error }) => {
-      if (error) {
-        onError?.('Erro ao carregar sócios')
-      } else {
-        setPartners((data ?? []).map((r: PartnerRow) => ({
-          displayName: r.display_name,
-          username: r.username,
-          percentage: Number(r.percentage),
-          role: r.role as 'admin' | 'user',
-        })))
-      }
-      setLoading(false)
-    })
-  }, [])
+  const fetchPartners = useCallback(async () => {
+    if (!userId) return
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('partners')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true })
+    if (error) onError?.('Erro ao carregar sócios')
+    else setPartners((data ?? []).map(r => mapRow(r as Row)))
+    setLoading(false)
+  }, [userId, onError])
 
-  return { partners, loading }
+  useEffect(() => { fetchPartners() }, [fetchPartners])
+
+  const addPartner = useCallback(async (name: string, percentage: number): Promise<{ success: boolean }> => {
+    const { error } = await supabase
+      .from('partners')
+      .insert({ user_id: userId, name, percentage, active: true })
+    if (error) { onError?.('Erro ao adicionar sócio'); return { success: false } }
+    await fetchPartners()
+    return { success: true }
+  }, [userId, onError, fetchPartners])
+
+  const updatePartner = useCallback(async (
+    id: string,
+    updates: { name?: string; percentage?: number; active?: boolean },
+  ): Promise<{ success: boolean }> => {
+    const { error } = await supabase
+      .from('partners')
+      .update(updates)
+      .eq('id', id)
+      .eq('user_id', userId)
+    if (error) { onError?.('Erro ao atualizar sócio'); return { success: false } }
+    await fetchPartners()
+    return { success: true }
+  }, [userId, onError, fetchPartners])
+
+  return { partners, loading, addPartner, updatePartner, refreshPartners: fetchPartners }
 }

@@ -8,7 +8,7 @@ export interface CreateUserData {
   username: string
   display_name: string
   role: 'admin' | 'user'
-  percentage: number
+  percentage?: number
 }
 
 export interface UpdateUserData {
