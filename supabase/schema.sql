@@ -59,24 +59,7 @@ ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 
 
 -- ─────────────────────────────────────────
--- 3. FUNÇÃO AUXILIAR: is_admin()
--- SECURITY DEFINER evita recursão infinita nas políticas da tabela users
--- ─────────────────────────────────────────
-
-CREATE OR REPLACE FUNCTION public.is_admin()
-RETURNS boolean
-LANGUAGE sql
-SECURITY DEFINER
-STABLE
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin'
-  );
-$$;
-
-
--- ─────────────────────────────────────────
--- 4. FUNÇÃO: get_email_by_username()
+-- 3. FUNÇÃO: get_email_by_username()
 -- Permite buscar o e-mail pelo username SEM estar autenticado (fluxo de login)
 -- Chamada como anon via supabase.rpc() na tela de login
 -- ─────────────────────────────────────────
