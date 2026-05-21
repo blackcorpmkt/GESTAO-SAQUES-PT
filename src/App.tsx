@@ -4,6 +4,7 @@ import { Login } from './components/Login'
 import { Dashboard } from './components/Dashboard'
 import { LancamentoForm } from './components/LancamentoForm'
 import { LancamentosTable } from './components/LancamentosTable'
+import { CalculadoraLucro } from './components/CalculadoraLucro'
 import { Relatorio } from './components/Relatorio'
 import { Configuracoes } from './components/Configuracoes'
 import { GerenciamentoUsuarios } from './components/GerenciamentoUsuarios'
@@ -14,7 +15,7 @@ import { useConfig } from './hooks/useConfig'
 import { useToast } from './hooks/useToast'
 import { useDarkMode } from './hooks/useDarkMode'
 
-type Aba = 'dashboard' | 'lancamentos' | 'relatorio' | 'configuracoes' | 'usuarios'
+type Aba = 'dashboard' | 'lancamentos' | 'calculadora' | 'relatorio' | 'configuracoes' | 'usuarios'
 
 function LoadingScreen() {
   return (
@@ -45,6 +46,7 @@ function AppContent({ userId }: { userId: string }) {
     const base: { key: Aba; label: string; icon: string }[] = [
       { key: 'dashboard',     label: 'Dashboard',    icon: '◈' },
       { key: 'lancamentos',   label: 'Lançamentos',  icon: '≡' },
+      { key: 'calculadora',   label: 'Calculadora',  icon: '🧮' },
       { key: 'relatorio',     label: 'Relatório',    icon: '📄' },
       { key: 'configuracoes', label: 'Configurações', icon: '⚙' },
     ]
@@ -141,6 +143,10 @@ function AppContent({ userId }: { userId: string }) {
               onToast={addToast}
             />
           </>
+        )}
+
+        {aba === 'calculadora' && (
+          <CalculadoraLucro config={config} onToast={addToast} />
         )}
 
         {aba === 'relatorio' && (

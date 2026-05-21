@@ -97,6 +97,30 @@ GRANT EXECUTE ON FUNCTION public.get_email_by_username(text) TO anon;
 
 
 -- ─────────────────────────────────────────
+-- 4b. FUNÇÃO: get_active_partners()
+-- Retorna nome + percentual dos usuários ATIVOS para a Calculadora de Lucro.
+-- SECURITY DEFINER permite que qualquer usuário autenticado veja a distribuição
+-- de sociedade sem expor as demais colunas da tabela users (contorna a RLS
+-- que restringe usuários comuns a lerem apenas o próprio perfil).
+-- ─────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION public.get_active_partners()
+RETURNS TABLE (display_name text, username text, percentage numeric, role text)
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+AS $$
+  SELECT display_name, username, percentage, role
+  FROM public.users
+  WHERE active = true
+  ORDER BY percentage DESC, display_name;
+$$;
+
+-- Apenas usuários autenticados podem listar os sócios
+GRANT EXECUTE ON FUNCTION public.get_active_partners() TO authenticated;
+
+
+-- ─────────────────────────────────────────
 -- 5. POLÍTICAS RLS — users
 -- ─────────────────────────────────────────
 
