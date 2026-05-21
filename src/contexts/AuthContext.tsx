@@ -26,24 +26,49 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-async function fetchProfile(userId: string): Promise<UserProfile | null> {
-  const { data, error } = await supabase
+const PROFILE_TIMEOUT_MS = 8000
+
+// Busca o perfil com proteção de timeout (nunca pendura a UI) e devolve a mensagem
+// de erro real quando falha — útil para diagnosticar (ex.: linha ausente, RLS).
+async function loadProfile(userId: string): Promise<{ profile: UserProfile | null; errorMsg: string | null }> {
+  const query = supabase
     .from('users')
     .select('username, email, display_name, role, percentage, password_changed')
     .eq('id', userId)
-    .single()
+    .maybeSingle()
 
-  if (error || !data) return null
+  const timeout = new Promise<{ data: null; error: { message: string } }>(resolve =>
+    setTimeout(() => resolve({ data: null, error: { message: 'Tempo esgotado ao carregar o perfil.' } }), PROFILE_TIMEOUT_MS),
+  )
+
+  const { data, error } = (await Promise.race([query, timeout])) as
+    { data: Record<string, unknown> | null; error: { message: string } | null }
+
+  if (error) {
+    console.error('[auth] erro ao carregar perfil:', error.message)
+    return { profile: null, errorMsg: error.message }
+  }
+  if (!data) {
+    return { profile: null, errorMsg: 'Perfil não encontrado para este usuário.' }
+  }
 
   return {
-    userId,
-    username: data.username,
-    email: data.email,
-    displayName: data.display_name,
-    role: data.role as 'admin' | 'user',
-    percentage: data.percentage,
-    passwordChanged: data.password_changed,
+    profile: {
+      userId,
+      username: data.username as string,
+      email: data.email as string,
+      displayName: data.display_name as string,
+      role: data.role as 'admin' | 'user',
+      percentage: data.percentage as number,
+      passwordChanged: data.password_changed as boolean,
+    },
+    errorMsg: null,
   }
+}
+
+async function fetchProfile(userId: string): Promise<UserProfile | null> {
+  const { profile } = await loadProfile(userId)
+  return profile
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -85,17 +110,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       finalizar()
     }
 
-    // INITIAL_SESSION cobre a restauração de sessão ao carregar (substitui getSession,
-    // evitando a corrida em que o perfil era buscado antes da sessão estar pronta).
-    // SIGNED_IN cobre login/cadastro; SIGNED_OUT cobre logout.
-    // TOKEN_REFRESHED/USER_UPDATED são ignorados de propósito: não devem disparar
-    // signOut em falha transitória de fetch (deslogaria o usuário no refresh do token).
+    // INITIAL_SESSION cobre a restauração de sessão ao recarregar a página (substitui
+    // getSession, evitando a corrida em que o perfil era buscado antes da sessão pronta).
+    // SIGNED_OUT cobre logout. SIGNED_IN é tratado dentro de login()/signUp(), que
+    // carregam o perfil e retornam um resultado definitivo — assim o botão nunca trava
+    // em "Entrando..." esperando uma transição que não acontece. TOKEN_REFRESHED/
+    // USER_UPDATED são ignorados (não devem disparar signOut em falha transitória).
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
         if (cancelado) return
         setCurrentUser(null)
         finalizar()
-      } else if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+      } else if (event === 'INITIAL_SESSION') {
         aplicarSessao(session)
       }
     })
@@ -117,7 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: false, error: 'Usuário não encontrado.' }
     }
 
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
+    const { data: signInData, error: authError } = await supabase.auth.signInWithPassword({ email, password })
 
     if (authError) {
       const msg = authError.message.toLowerCase()
@@ -127,6 +153,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: false, error: 'Falha na autenticação. Tente novamente.' }
     }
 
+    // Só consideramos o login concluído quando o perfil carrega. Se falhar (linha
+    // ausente, RLS, etc.), encerramos a sessão e devolvemos o erro real — evita
+    // ficar preso em "Entrando..." e mostra a causa em vez de um signOut silencioso.
+    const userId = signInData.user?.id
+    const { profile, errorMsg } = userId
+      ? await loadProfile(userId)
+      : { profile: null, errorMsg: 'Sessão inválida.' }
+
+    if (!profile) {
+      await supabase.auth.signOut()
+      return { success: false, error: `Não foi possível carregar seu perfil. ${errorMsg ?? ''}`.trim() }
+    }
+
+    setCurrentUser(profile)
     return { success: true }
   }, [])
 
@@ -160,11 +200,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Conta criada → autentica para abrir a sessão e cair no /dashboard
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
-    if (signInError) {
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+    if (signInError || !signInData.user) {
       return { success: false, error: 'Conta criada! Faça login para entrar.' }
     }
 
+    // Carrega o perfil recém-criado e seta o usuário (listener não trata SIGNED_IN)
+    const { profile } = await loadProfile(signInData.user.id)
+    if (!profile) {
+      return { success: false, error: 'Conta criada! Faça login para entrar.' }
+    }
+
+    setCurrentUser(profile)
     return { success: true }
   }, [])
 
