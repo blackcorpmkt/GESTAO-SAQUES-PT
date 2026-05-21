@@ -86,6 +86,27 @@ Deno.serve(async (req: Request) => {
       })
     }
 
+    // Sócio padrão: contas de usuário comum nascem com o dono como sócio de 100%
+    // (admins não operam lançamentos/divisão, então não recebem sócio padrão —
+    // mesmo critério do backfill, que cobre apenas role = 'user').
+    if ((role ?? 'user') === 'user') {
+      const { error: partnerError } = await supabaseAdmin.from('partners').insert({
+        user_id: newAuth.user.id,
+        name: display_name.trim(),
+        percentage: 100,
+        active: true,
+      })
+      if (partnerError) {
+        // Rollback completo: remove perfil + auth user
+        await supabaseAdmin.from('users').delete().eq('id', newAuth.user.id)
+        await supabaseAdmin.auth.admin.deleteUser(newAuth.user.id)
+        return new Response(JSON.stringify({ error: 'Erro ao criar sócio padrão.' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    }
+
     return new Response(JSON.stringify({ success: true, userId: newAuth.user.id }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
