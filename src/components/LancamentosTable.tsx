@@ -9,6 +9,7 @@ interface Props {
   lancamentos: Lancamento[]
   onToggleStatus: (id: string) => void
   onDelete: (id: string) => void
+  onUpdateCotacao: (id: string, novaCotacao: number) => void
   onToast: (msg: string, tipo?: 'sucesso' | 'erro' | 'info') => void
 }
 
@@ -39,13 +40,26 @@ function StatusBadge({ l }: { l: Lancamento }) {
   return <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">⏳ Pendente</span>
 }
 
-export function LancamentosTable({ lancamentos, onToggleStatus, onDelete, onToast }: Props) {
+export function LancamentosTable({ lancamentos, onToggleStatus, onDelete, onUpdateCotacao, onToast }: Props) {
   const { currentUser } = useAuth()
   const pct = currentUser?.role === 'user' ? (currentUser?.percentage ?? 0) : 0
   const showPct = pct > 0
 
   const [filtro, setFiltro] = useState<Filtro>('todos')
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [editandoCotacaoId, setEditandoCotacaoId] = useState<string | null>(null)
+  const [cotacaoEdit, setCotacaoEdit] = useState('')
+
+  const confirmarCotacao = (l: Lancamento) => {
+    const val = parseFloat(cotacaoEdit.replace(',', '.'))
+    if (isNaN(val) || val <= 0) {
+      onToast('Cotação inválida. Use um valor maior que zero.', 'erro')
+      return
+    }
+    onUpdateCotacao(l.id, val)
+    onToast(`Cotação do lançamento ${l.data_venda} atualizada!`, 'sucesso')
+    setEditandoCotacaoId(null)
+  }
 
   const filtrados = lancamentos
     .filter(l => filtro === 'todos' ? true : l.status === filtro)
@@ -144,8 +158,56 @@ export function LancamentosTable({ lancamentos, onToggleStatus, onDelete, onToas
                         </p>
                       )}
                     </td>
-                    <td className="px-4 py-3.5 text-right font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums">
-                      {formatarMoedaBR(l.valor_brl)}
+                    <td className="px-4 py-3.5 text-right">
+                      {editandoCotacaoId === l.id ? (
+                        <div className="flex items-center justify-end gap-1">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={cotacaoEdit}
+                            onChange={e => setCotacaoEdit(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') confirmarCotacao(l)
+                              else if (e.key === 'Escape') setEditandoCotacaoId(null)
+                            }}
+                            autoFocus
+                            placeholder="5.83"
+                            className="w-20 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 text-xs text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 tabular-nums"
+                          />
+                          <button
+                            onClick={() => confirmarCotacao(l)}
+                            title="Confirmar nova cotação"
+                            className="w-6 h-6 flex items-center justify-center rounded-md bg-emerald-500 hover:bg-emerald-600 text-white text-xs transition-colors"
+                          >
+                            ✓
+                          </button>
+                          <button
+                            onClick={() => setEditandoCotacaoId(null)}
+                            title="Cancelar"
+                            className="w-6 h-6 flex items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400 text-xs transition-colors"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-end gap-1.5">
+                          <div className="text-right">
+                            <p className="font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums">
+                              {formatarMoedaBR(l.valor_brl)}
+                            </p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500 tabular-nums">
+                              @ {l.cotacao_eur_brl.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => { setEditandoCotacaoId(l.id); setCotacaoEdit(String(l.cotacao_eur_brl)) }}
+                            title="Editar cotação deste lançamento"
+                            className="w-6 h-6 flex items-center justify-center rounded-md text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                          >
+                            ✎
+                          </button>
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3.5">
                       <p className="font-medium text-gray-800 dark:text-gray-200">{l.data_recebimento}</p>

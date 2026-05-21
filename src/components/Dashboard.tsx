@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Lancamento, Config } from '../types'
 import { formatarMoedaBR, formatarEUR, parseDateBR, formatDateBR } from '../utils/formatacao'
 import { useAuth } from '../contexts/AuthContext'
@@ -53,6 +53,12 @@ export function Dashboard({ lancamentos, config, onUpdateConfig }: Props) {
   )
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
+
+  // Mantém o input em sincronia com o config (que carrega de forma assíncrona do Supabase).
+  // Sem isso, o input fica preso ao valor inicial e pode sobrescrever a cotação ao salvar.
+  useEffect(() => {
+    setCotacaoInput(config.cotacao_manual != null ? String(config.cotacao_manual) : '')
+  }, [config.cotacao_manual])
 
   const hoje = formatDateBR(new Date())
   const amanha = (() => { const d = new Date(); d.setDate(d.getDate() + 1); return formatDateBR(d) })()

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Config, Lancamento } from '../types'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabaseClient'
@@ -9,6 +9,7 @@ interface Props {
   onResetConfig: () => void
   lancamentos: Lancamento[]
   onImport: (data: Lancamento[]) => Promise<void>
+  onApplyCotacaoPendentes: (novaCotacao: number) => void
   onToast: (msg: string, tipo?: 'sucesso' | 'erro' | 'info') => void
 }
 
@@ -34,7 +35,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   )
 }
 
-export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancamentos, onImport, onToast }: Props) {
+export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancamentos, onImport, onApplyCotacaoPendentes, onToast }: Props) {
   const { currentUser, refreshProfile } = useAuth()
 
   // Configurações gerais
@@ -44,6 +45,16 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
   const [cotacaoInput, setCotacaoInput] = useState(config.cotacao_manual?.toString() ?? '')
   const [confirmReset, setConfirmReset] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  // Mantém os inputs em sincronia com o config (carregado de forma assíncrona do Supabase).
+  // Sem isso, os campos ficam presos ao valor inicial e podem sobrescrever o config ao salvar
+  // — em especial zerando a cotação, que era a causa dos valores zerados em novos lançamentos.
+  useEffect(() => {
+    setTaxaInput(config.taxa_gateway.toString())
+    setTaxaFixaInput(config.taxa_fixa_eur.toString())
+    setNomeInput(config.nome_relatorio)
+    setCotacaoInput(config.cotacao_manual?.toString() ?? '')
+  }, [config.taxa_gateway, config.taxa_fixa_eur, config.nome_relatorio, config.cotacao_manual])
 
   // Troca de senha
   const [senhaAtual, setSenhaAtual] = useState('')
@@ -130,6 +141,22 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
     setTrocandoSenha(false)
     onToast('Senha alterada com sucesso!', 'sucesso')
     await refreshProfile()
+  }
+
+  const handleAplicarCotacaoPendentes = () => {
+    const cot = cotacaoInput ? parseFloat(cotacaoInput.replace(',', '.')) : null
+    if (cot == null || isNaN(cot) || cot <= 0) {
+      onToast('Defina uma cotação válida acima antes de aplicar.', 'erro')
+      return
+    }
+    const qtd = lancamentos.filter(l => l.status === 'pendente').length
+    if (qtd === 0) {
+      onToast('Nenhum lançamento pendente para atualizar.', 'info')
+      return
+    }
+    onApplyCotacaoPendentes(cot)
+    const cotFmt = cot.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    onToast(`Cotação R$ ${cotFmt} aplicada a ${qtd} lançamento${qtd !== 1 ? 's' : ''} pendente${qtd !== 1 ? 's' : ''}!`, 'sucesso')
   }
 
   const handleExportarJSON = () => {
@@ -289,6 +316,22 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
               className={inputClass}
             />
           </Field>
+        </div>
+
+        <div className="bg-gray-50 dark:bg-gray-700/40 border border-gray-100 dark:border-gray-600 rounded-xl p-4 mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Aplicar cotação aos pendentes</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+              Recalcula o valor em R$ de todos os lançamentos pendentes usando a cotação acima.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleAplicarCotacaoPendentes}
+            className="whitespace-nowrap bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md"
+          >
+            Aplicar a todos os pendentes
+          </button>
         </div>
 
         <div className="flex flex-wrap gap-3">

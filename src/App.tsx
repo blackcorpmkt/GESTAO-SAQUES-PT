@@ -40,7 +40,7 @@ function AppContent({ userId }: { userId: string }) {
   const handleError = useCallback((msg: string) => addToast(msg, 'erro'), [addToast])
 
   const { config, updateConfig, resetConfig } = useConfig(userId, handleError)
-  const { lancamentos, addLancamento, toggleStatus, deleteLancamento, importLancamentos } = useLancamentos(userId, handleError)
+  const { lancamentos, addLancamento, toggleStatus, deleteLancamento, importLancamentos, updateCotacao, applyCotacaoToPending } = useLancamentos(userId, handleError)
 
   const ABAS = useMemo(() => {
     const base: { key: Aba; label: string; icon: string }[] = [
@@ -140,6 +140,7 @@ function AppContent({ userId }: { userId: string }) {
               lancamentos={lancamentos}
               onToggleStatus={toggleStatus}
               onDelete={deleteLancamento}
+              onUpdateCotacao={updateCotacao}
               onToast={addToast}
             />
           </>
@@ -155,6 +156,7 @@ function AppContent({ userId }: { userId: string }) {
               lancamentos={lancamentos}
               onToggleStatus={toggleStatus}
               onDelete={deleteLancamento}
+              onUpdateCotacao={updateCotacao}
               onToast={addToast}
             />
             <Relatorio
@@ -172,6 +174,7 @@ function AppContent({ userId }: { userId: string }) {
             onResetConfig={resetConfig}
             lancamentos={lancamentos}
             onImport={importLancamentos}
+            onApplyCotacaoPendentes={applyCotacaoToPending}
             onToast={addToast}
           />
         )}

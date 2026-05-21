@@ -153,6 +153,61 @@ export function useLancamentos(userId: string, onError?: (msg: string) => void) 
       })
   }, [userId, onError])
 
+  // Atualiza a cotação de UM lançamento e recalcula o valor em BRL (net_value_eur × nova cotação)
+  const updateCotacao = useCallback((id: string, novaCotacao: number) => {
+    setLancamentosState(prev => {
+      const alvo = prev.find(l => l.id === id)
+      if (!alvo) return prev
+      const novoBrl = alvo.valor_liquido_eur * novaCotacao
+
+      supabase
+        .from('launches')
+        .update({ exchange_rate: novaCotacao, net_value_brl: novoBrl })
+        .eq('id', id)
+        .eq('user_id', userId)
+        .then(({ error }) => {
+          if (error) {
+            setLancamentosState(prev2 => prev2.map(l => (l.id === id ? alvo : l)))
+            onError?.('Erro ao atualizar cotação')
+          }
+        })
+
+      return prev.map(l =>
+        l.id === id ? { ...l, cotacao_eur_brl: novaCotacao, valor_brl: novoBrl } : l
+      )
+    })
+  }, [userId, onError])
+
+  // Aplica a cotação a TODOS os lançamentos pendentes, recalculando cada valor em BRL
+  const applyCotacaoToPending = useCallback((novaCotacao: number) => {
+    setLancamentosState(prev => {
+      const alvos = prev.filter(l => l.status === 'pendente')
+      if (alvos.length === 0) return prev
+      const backup = prev
+
+      Promise.all(
+        alvos.map(l =>
+          supabase
+            .from('launches')
+            .update({ exchange_rate: novaCotacao, net_value_brl: l.valor_liquido_eur * novaCotacao })
+            .eq('id', l.id)
+            .eq('user_id', userId)
+        )
+      ).then(results => {
+        if (results.some(r => r.error)) {
+          setLancamentosState(backup)
+          onError?.('Erro ao aplicar cotação aos pendentes')
+        }
+      })
+
+      return prev.map(l =>
+        l.status === 'pendente'
+          ? { ...l, cotacao_eur_brl: novaCotacao, valor_brl: l.valor_liquido_eur * novaCotacao }
+          : l
+      )
+    })
+  }, [userId, onError])
+
   const importLancamentos = useCallback(async (data: Lancamento[]) => {
     const { error: delError } = await supabase
       .from('launches')
@@ -170,5 +225,5 @@ export function useLancamentos(userId: string, onError?: (msg: string) => void) 
     setLancamentosState(data)
   }, [userId, onError])
 
-  return { lancamentos, loading, addLancamento, toggleStatus, deleteLancamento, importLancamentos }
+  return { lancamentos, loading, addLancamento, toggleStatus, deleteLancamento, importLancamentos, updateCotacao, applyCotacaoToPending }
 }
