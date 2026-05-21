@@ -246,10 +246,6 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
             {!loading && (
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                 {users.length} usuário{users.length !== 1 ? 's' : ''} cadastrado{users.length !== 1 ? 's' : ''}
-                {' · '}
-                <span className={totalPct === 100 ? 'font-medium text-emerald-600 dark:text-emerald-400' : 'font-medium text-amber-600 dark:text-amber-400'}>
-                  Total: {totalPctFmt}%
-                </span>
               </p>
             )}
           </div>
@@ -367,6 +363,17 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {!loading && users.length > 0 && (
+          <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
+              Soma total:{' '}
+              <span className={totalPct === 100 ? 'font-semibold text-emerald-600 dark:text-emerald-400' : 'font-semibold text-amber-600 dark:text-amber-400'}>
+                {totalPctFmt}%
+              </span>
+            </p>
           </div>
         )}
       </div>

@@ -1,4 +1,5 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
+import { Routes, Route, NavLink, Navigate } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
 import { Login } from './components/Login'
 import { Dashboard } from './components/Dashboard'
@@ -14,8 +15,6 @@ import { useLancamentos } from './hooks/useLancamentos'
 import { useConfig } from './hooks/useConfig'
 import { useToast } from './hooks/useToast'
 import { useDarkMode } from './hooks/useDarkMode'
-
-type Aba = 'dashboard' | 'lancamentos' | 'calculadora' | 'relatorio' | 'configuracoes' | 'usuarios'
 
 function LoadingScreen() {
   return (
@@ -34,7 +33,6 @@ function AppContent({ userId }: { userId: string }) {
   const { currentUser } = useAuth()
   const { toasts, addToast, removeToast } = useToast()
   const { darkMode, toggleDarkMode } = useDarkMode()
-  const [aba, setAba] = useState<Aba>('dashboard')
 
   // Callback estável para erros dos hooks — passa addToast sem criar função nova a cada render
   const handleError = useCallback((msg: string) => addToast(msg, 'erro'), [addToast])
@@ -43,15 +41,15 @@ function AppContent({ userId }: { userId: string }) {
   const { lancamentos, addLancamento, toggleStatus, deleteLancamento, importLancamentos, updateCotacao, applyCotacaoToPending } = useLancamentos(userId, handleError)
 
   const ABAS = useMemo(() => {
-    const base: { key: Aba; label: string; icon: string }[] = [
-      { key: 'dashboard',     label: 'Dashboard',    icon: '◈' },
-      { key: 'lancamentos',   label: 'Lançamentos',  icon: '≡' },
-      { key: 'calculadora',   label: 'Calculadora',  icon: '🧮' },
-      { key: 'relatorio',     label: 'Relatório',    icon: '📄' },
-      { key: 'configuracoes', label: 'Configurações', icon: '⚙' },
+    const base: { to: string; label: string; icon: string }[] = [
+      { to: '/dashboard',     label: 'Dashboard',    icon: '◈' },
+      { to: '/lancamentos',   label: 'Lançamentos',  icon: '≡' },
+      { to: '/calculadora',   label: 'Calculadora',  icon: '🧮' },
+      { to: '/relatorio',     label: 'Relatório',    icon: '📄' },
+      { to: '/configuracoes', label: 'Configurações', icon: '⚙' },
     ]
     if (currentUser?.role === 'admin') {
-      base.push({ key: 'usuarios', label: 'Usuários', icon: '👥' })
+      base.push({ to: '/usuarios', label: 'Usuários', icon: '👥' })
     }
     return base
   }, [currentUser?.role])
@@ -77,12 +75,12 @@ function AppContent({ userId }: { userId: string }) {
             {/* Navegação */}
             <nav className="flex gap-0.5">
               {ABAS.map(a => (
-                <button
-                  key={a.key}
-                  onClick={() => setAba(a.key)}
-                  className={`
+                <NavLink
+                  key={a.to}
+                  to={a.to}
+                  className={({ isActive }) => `
                     px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150
-                    ${aba === a.key
+                    ${isActive
                       ? 'bg-blue-600 text-white shadow-sm'
                       : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
                     }
@@ -90,7 +88,7 @@ function AppContent({ userId }: { userId: string }) {
                 >
                   <span className="hidden sm:inline">{a.label}</span>
                   <span className="sm:hidden">{a.icon}</span>
-                </button>
+                </NavLink>
               ))}
             </nav>
 
@@ -110,78 +108,100 @@ function AppContent({ userId }: { userId: string }) {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-5">
-        {aba === 'dashboard' && (
-          <>
-            <Dashboard
-              lancamentos={lancamentos}
-              config={config}
-              onUpdateConfig={updateConfig}
-            />
-            <LancamentoForm
-              cotacao={cotacao}
-              taxaGateway={config.taxa_gateway}
-              taxaFixaEur={config.taxa_fixa_eur}
-              onAdd={addLancamento}
-              onToast={addToast}
-            />
-          </>
-        )}
-
-        {aba === 'lancamentos' && (
-          <>
-            <LancamentoForm
-              cotacao={cotacao}
-              taxaGateway={config.taxa_gateway}
-              taxaFixaEur={config.taxa_fixa_eur}
-              onAdd={addLancamento}
-              onToast={addToast}
-            />
-            <LancamentosTable
-              lancamentos={lancamentos}
-              onToggleStatus={toggleStatus}
-              onDelete={deleteLancamento}
-              onUpdateCotacao={updateCotacao}
-              onToast={addToast}
-            />
-          </>
-        )}
-
-        {aba === 'calculadora' && (
-          <CalculadoraLucro config={config} onToast={addToast} />
-        )}
-
-        {aba === 'relatorio' && (
-          <>
-            <LancamentosTable
-              lancamentos={lancamentos}
-              onToggleStatus={toggleStatus}
-              onDelete={deleteLancamento}
-              onUpdateCotacao={updateCotacao}
-              onToast={addToast}
-            />
-            <Relatorio
-              lancamentos={lancamentos}
-              nomeRelatorio={config.nome_relatorio}
-              onToast={addToast}
-            />
-          </>
-        )}
-
-        {aba === 'configuracoes' && (
-          <Configuracoes
-            config={config}
-            onUpdateConfig={updateConfig}
-            onResetConfig={resetConfig}
-            lancamentos={lancamentos}
-            onImport={importLancamentos}
-            onApplyCotacaoPendentes={applyCotacaoToPending}
-            onToast={addToast}
+        <Routes>
+          <Route
+            path="dashboard"
+            element={
+              <>
+                <Dashboard
+                  lancamentos={lancamentos}
+                  config={config}
+                  onUpdateConfig={updateConfig}
+                />
+                <LancamentoForm
+                  cotacao={cotacao}
+                  taxaGateway={config.taxa_gateway}
+                  taxaFixaEur={config.taxa_fixa_eur}
+                  onAdd={addLancamento}
+                  onToast={addToast}
+                />
+              </>
+            }
           />
-        )}
 
-        {aba === 'usuarios' && currentUser?.role === 'admin' && (
-          <GerenciamentoUsuarios onToast={addToast} />
-        )}
+          <Route
+            path="lancamentos"
+            element={
+              <>
+                <LancamentoForm
+                  cotacao={cotacao}
+                  taxaGateway={config.taxa_gateway}
+                  taxaFixaEur={config.taxa_fixa_eur}
+                  onAdd={addLancamento}
+                  onToast={addToast}
+                />
+                <LancamentosTable
+                  lancamentos={lancamentos}
+                  onToggleStatus={toggleStatus}
+                  onDelete={deleteLancamento}
+                  onUpdateCotacao={updateCotacao}
+                  onToast={addToast}
+                />
+              </>
+            }
+          />
+
+          <Route
+            path="calculadora"
+            element={<CalculadoraLucro config={config} onToast={addToast} />}
+          />
+
+          <Route
+            path="relatorio"
+            element={
+              <>
+                <LancamentosTable
+                  lancamentos={lancamentos}
+                  onToggleStatus={toggleStatus}
+                  onDelete={deleteLancamento}
+                  onUpdateCotacao={updateCotacao}
+                  onToast={addToast}
+                />
+                <Relatorio
+                  lancamentos={lancamentos}
+                  nomeRelatorio={config.nome_relatorio}
+                  onToast={addToast}
+                />
+              </>
+            }
+          />
+
+          <Route
+            path="configuracoes"
+            element={
+              <Configuracoes
+                config={config}
+                onUpdateConfig={updateConfig}
+                onResetConfig={resetConfig}
+                lancamentos={lancamentos}
+                onImport={importLancamentos}
+                onApplyCotacaoPendentes={applyCotacaoToPending}
+                onToast={addToast}
+              />
+            }
+          />
+
+          <Route
+            path="usuarios"
+            element={
+              currentUser?.role === 'admin'
+                ? <GerenciamentoUsuarios onToast={addToast} />
+                : <Navigate to="/dashboard" replace />
+            }
+          />
+
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
       </main>
 
       <ToastContainer toasts={toasts} onRemove={removeToast} />
@@ -193,8 +213,26 @@ export default function App() {
   const { isAuthenticated, currentUser, loading } = useAuth()
 
   if (loading) return <LoadingScreen />
-  if (!isAuthenticated || !currentUser) return <Login />
 
-  // key={userId} garante remontagem completa ao trocar de conta
-  return <AppContent key={currentUser.userId} userId={currentUser.userId} />
+  return (
+    <Routes>
+      <Route
+        path="/login"
+        element={
+          isAuthenticated && currentUser
+            ? <Navigate to="/dashboard" replace />
+            : <Login />
+        }
+      />
+      {/* key={userId} garante remontagem completa ao trocar de conta */}
+      <Route
+        path="/*"
+        element={
+          isAuthenticated && currentUser
+            ? <AppContent key={currentUser.userId} userId={currentUser.userId} />
+            : <Navigate to="/login" replace />
+        }
+      />
+    </Routes>
+  )
 }
