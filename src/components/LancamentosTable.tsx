@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Lancamento } from '../types'
 import { formatarEUR, formatarMoedaBR, parseDateBR, formatDateBR, getDiaSemanaVenda } from '../utils/formatacao'
+import { useAuth } from '../contexts/AuthContext'
 
 type Filtro = 'todos' | 'pendente' | 'recebido'
 
@@ -39,6 +40,10 @@ function StatusBadge({ l }: { l: Lancamento }) {
 }
 
 export function LancamentosTable({ lancamentos, onToggleStatus, onDelete, onToast }: Props) {
+  const { currentUser } = useAuth()
+  const pct = currentUser?.role === 'user' ? (currentUser?.percentage ?? 0) : 0
+  const showPct = pct > 0
+
   const [filtro, setFiltro] = useState<Filtro>('todos')
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
@@ -129,8 +134,15 @@ export function LancamentosTable({ lancamentos, onToggleStatus, onDelete, onToas
                     <td className="px-4 py-3.5 text-right text-gray-500 dark:text-gray-400 tabular-nums">
                       {formatarEUR(l.valor_bruto_eur)}
                     </td>
-                    <td className="px-4 py-3.5 text-right font-semibold text-gray-800 dark:text-gray-200 tabular-nums">
-                      {formatarEUR(l.valor_liquido_eur)}
+                    <td className="px-4 py-3.5 text-right">
+                      <p className="font-semibold text-gray-800 dark:text-gray-200 tabular-nums">
+                        {formatarEUR(l.valor_liquido_eur)}
+                      </p>
+                      {showPct && (
+                        <p className="text-xs text-indigo-600 dark:text-indigo-400 tabular-nums mt-0.5">
+                          {pct}% → {formatarEUR(l.valor_liquido_eur * pct / 100)}
+                        </p>
+                      )}
                     </td>
                     <td className="px-4 py-3.5 text-right font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums">
                       {formatarMoedaBR(l.valor_brl)}

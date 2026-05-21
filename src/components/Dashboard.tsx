@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Lancamento, Config } from '../types'
 import { formatarMoedaBR, formatarEUR, parseDateBR, formatDateBR } from '../utils/formatacao'
+import { useAuth } from '../contexts/AuthContext'
 
 interface Props {
   lancamentos: Lancamento[]
@@ -46,6 +47,7 @@ function Badge({ children, cor }: { children: React.ReactNode; cor: string }) {
 }
 
 export function Dashboard({ lancamentos, config, onUpdateConfig }: Props) {
+  const { currentUser } = useAuth()
   const [cotacaoInput, setCotacaoInput] = useState(
     config.cotacao_manual != null ? String(config.cotacao_manual) : ''
   )
@@ -71,6 +73,10 @@ export function Dashboard({ lancamentos, config, onUpdateConfig }: Props) {
   const proxEhAmanha = proximoRecebimento?.data_recebimento === amanha
 
   const cotacaoAtual = config.cotacao_manual
+
+  // Percentual de sociedade (apenas para usuários comuns com % definido)
+  const pct = currentUser?.role === 'user' ? (currentUser?.percentage ?? 0) : 0
+  const showPct = pct > 0
 
   const handleSalvar = () => {
     const raw = cotacaoInput.replace(',', '.')
@@ -100,11 +106,20 @@ export function Dashboard({ lancamentos, config, onUpdateConfig }: Props) {
           icon="⏳"
           cor="bg-blue-500"
           badge={
-            pendentes.length > 0
-              ? <Badge cor="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                  {pendentes.length} lançamento{pendentes.length !== 1 ? 's' : ''} pendente{pendentes.length !== 1 ? 's' : ''}
-                </Badge>
-              : undefined
+            pendentes.length > 0 || showPct ? (
+              <div className="flex flex-wrap gap-1.5">
+                {pendentes.length > 0 && (
+                  <Badge cor="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                    {pendentes.length} lançamento{pendentes.length !== 1 ? 's' : ''} pendente{pendentes.length !== 1 ? 's' : ''}
+                  </Badge>
+                )}
+                {showPct && (
+                  <Badge cor="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300">
+                    Sua parte ({pct}%): {formatarEUR(totalPendenteEur * pct / 100)}
+                  </Badge>
+                )}
+              </div>
+            ) : undefined
           }
         />
 
@@ -115,11 +130,20 @@ export function Dashboard({ lancamentos, config, onUpdateConfig }: Props) {
           icon="✅"
           cor="bg-emerald-500"
           badge={
-            recebidos.length > 0
-              ? <Badge cor="bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
-                  {recebidos.length} recebido{recebidos.length !== 1 ? 's' : ''}
-                </Badge>
-              : undefined
+            recebidos.length > 0 || showPct ? (
+              <div className="flex flex-wrap gap-1.5">
+                {recebidos.length > 0 && (
+                  <Badge cor="bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
+                    {recebidos.length} recebido{recebidos.length !== 1 ? 's' : ''}
+                  </Badge>
+                )}
+                {showPct && (
+                  <Badge cor="bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-300">
+                    Sua parte ({pct}%): {formatarEUR(totalRecebidoEur * pct / 100)}
+                  </Badge>
+                )}
+              </div>
+            ) : undefined
           }
         />
 

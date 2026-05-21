@@ -57,8 +57,8 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
     bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100
     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`
 
-  // Aviso de senha padrão: admin que ainda não trocou a senha
-  const usingDefaultPassword = currentUser?.role === 'admin' && !currentUser?.passwordChanged
+  // Aviso de senha padrão: qualquer usuário que ainda não trocou a senha
+  const usingDefaultPassword = !currentUser?.passwordChanged
 
   const handleSalvarConfig = () => {
     const taxa = parseFloat(taxaInput)

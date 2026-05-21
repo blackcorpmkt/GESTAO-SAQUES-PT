@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useAuth } from './contexts/AuthContext'
 import { Login } from './components/Login'
 import { Dashboard } from './components/Dashboard'
@@ -6,6 +6,7 @@ import { LancamentoForm } from './components/LancamentoForm'
 import { LancamentosTable } from './components/LancamentosTable'
 import { Relatorio } from './components/Relatorio'
 import { Configuracoes } from './components/Configuracoes'
+import { GerenciamentoUsuarios } from './components/GerenciamentoUsuarios'
 import { ToastContainer } from './components/Toast'
 import { UserMenu } from './components/UserMenu'
 import { useLancamentos } from './hooks/useLancamentos'
@@ -13,14 +14,7 @@ import { useConfig } from './hooks/useConfig'
 import { useToast } from './hooks/useToast'
 import { useDarkMode } from './hooks/useDarkMode'
 
-type Aba = 'dashboard' | 'lancamentos' | 'relatorio' | 'configuracoes'
-
-const ABAS: { key: Aba; label: string; icon: string }[] = [
-  { key: 'dashboard',     label: 'Dashboard',    icon: '◈' },
-  { key: 'lancamentos',   label: 'Lançamentos',  icon: '≡' },
-  { key: 'relatorio',     label: 'Relatório',    icon: '📄' },
-  { key: 'configuracoes', label: 'Configurações', icon: '⚙' },
-]
+type Aba = 'dashboard' | 'lancamentos' | 'relatorio' | 'configuracoes' | 'usuarios'
 
 function LoadingScreen() {
   return (
@@ -36,6 +30,7 @@ function LoadingScreen() {
 }
 
 function AppContent({ userId }: { userId: string }) {
+  const { currentUser } = useAuth()
   const { toasts, addToast, removeToast } = useToast()
   const { darkMode, toggleDarkMode } = useDarkMode()
   const [aba, setAba] = useState<Aba>('dashboard')
@@ -45,6 +40,19 @@ function AppContent({ userId }: { userId: string }) {
 
   const { config, updateConfig, resetConfig } = useConfig(userId, handleError)
   const { lancamentos, addLancamento, toggleStatus, deleteLancamento, importLancamentos } = useLancamentos(userId, handleError)
+
+  const ABAS = useMemo(() => {
+    const base: { key: Aba; label: string; icon: string }[] = [
+      { key: 'dashboard',     label: 'Dashboard',    icon: '◈' },
+      { key: 'lancamentos',   label: 'Lançamentos',  icon: '≡' },
+      { key: 'relatorio',     label: 'Relatório',    icon: '📄' },
+      { key: 'configuracoes', label: 'Configurações', icon: '⚙' },
+    ]
+    if (currentUser?.role === 'admin') {
+      base.push({ key: 'usuarios', label: 'Usuários', icon: '👥' })
+    }
+    return base
+  }, [currentUser?.role])
 
   const cotacao = config.cotacao_manual
 
@@ -93,7 +101,7 @@ function AppContent({ userId }: { userId: string }) {
               >
                 {darkMode ? '☀' : '☾'}
               </button>
-              <UserMenu />
+              <UserMenu onToast={addToast} />
             </div>
           </div>
         </div>
@@ -160,6 +168,10 @@ function AppContent({ userId }: { userId: string }) {
             onImport={importLancamentos}
             onToast={addToast}
           />
+        )}
+
+        {aba === 'usuarios' && currentUser?.role === 'admin' && (
+          <GerenciamentoUsuarios onToast={addToast} />
         )}
       </main>
 

@@ -8,5 +8,10 @@ export interface UserProfile {
   passwordChanged: boolean
 }
 
+// Perfil completo visível para admins (inclui campo active)
+export interface UserRecord extends UserProfile {
+  active: boolean
+}
+
 // Alias mantido para compatibilidade com referências existentes
 export type Session = UserProfile

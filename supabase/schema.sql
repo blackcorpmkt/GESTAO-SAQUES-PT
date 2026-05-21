@@ -111,6 +111,10 @@ CREATE POLICY "users_update_own" ON public.users
 CREATE POLICY "users_select_admin" ON public.users
   FOR SELECT USING (public.is_admin());
 
+-- Admin pode atualizar qualquer perfil (necessário para gerenciamento de usuários)
+CREATE POLICY "users_update_admin" ON public.users
+  FOR UPDATE USING (public.is_admin());
+
 
 -- ─────────────────────────────────────────
 -- 6. POLÍTICAS RLS — launches
