@@ -9,17 +9,17 @@ export function Login() {
   const [loading, setLoading] = useState(false)
   const [showPass, setShowPass] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!username.trim() || !password) return
     setError('')
     setLoading(true)
-    const result = login(username, password)
+    const result = await login(username, password)
     if (!result.success) {
       setError(result.error ?? 'Falha na autenticação')
       setLoading(false)
     }
-    // Se success, o AuthContext atualiza currentUser e o App renderiza AppContent
+    // Se success, onAuthStateChange atualiza currentUser e o App renderiza AppContent
   }
 
   return (

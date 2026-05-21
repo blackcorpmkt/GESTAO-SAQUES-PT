@@ -1,17 +1,12 @@
-export interface User {
-  id: string
+export interface UserProfile {
+  userId: string          // auth.users.id (uuid)
   username: string
-  password: string       // btoa encoded
-  role: 'admin' | 'user'
+  email: string
   displayName: string
-  percentage: number     // 0–100 — percentual de sociedade
-  active: boolean
-  createdAt: string
+  role: 'admin' | 'user'
+  percentage: number
+  passwordChanged: boolean
 }
 
-export interface Session {
-  userId: string
-  username: string
-  displayName: string
-  role: 'admin' | 'user'
-}
+// Alias mantido para compatibilidade com referências existentes
+export type Session = UserProfile

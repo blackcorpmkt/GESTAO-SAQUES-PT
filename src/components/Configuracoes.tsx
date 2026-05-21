@@ -1,15 +1,14 @@
 import { useState, useRef } from 'react'
 import { Config, Lancamento } from '../types'
-import { clearUserData } from '../utils/storage'
-import { isDefaultAdminPassword, changePassword } from '../utils/authStorage'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabaseClient'
 
 interface Props {
   config: Config
   onUpdateConfig: (updates: Partial<Config>) => void
   onResetConfig: () => void
   lancamentos: Lancamento[]
-  onImport: (data: Lancamento[]) => void
+  onImport: (data: Lancamento[]) => Promise<void>
   onToast: (msg: string, tipo?: 'sucesso' | 'erro' | 'info') => void
 }
 
@@ -36,7 +35,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 }
 
 export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancamentos, onImport, onToast }: Props) {
-  const { currentUser } = useAuth()
+  const { currentUser, refreshProfile } = useAuth()
 
   // Configurações gerais
   const [taxaInput, setTaxaInput] = useState(config.taxa_gateway.toString())
@@ -52,12 +51,14 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
   const [confirmarSenha, setConfirmarSenha] = useState('')
   const [erroSenha, setErroSenha] = useState('')
   const [showPasswords, setShowPasswords] = useState(false)
+  const [trocandoSenha, setTrocandoSenha] = useState(false)
 
   const inputClass = `w-full border border-gray-200 dark:border-gray-600 rounded-xl px-3.5 py-2.5 text-sm
     bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100
     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`
 
-  const usingDefaultPassword = currentUser ? isDefaultAdminPassword(currentUser.userId) : false
+  // Aviso de senha padrão: admin que ainda não trocou a senha
+  const usingDefaultPassword = currentUser?.role === 'admin' && !currentUser?.passwordChanged
 
   const handleSalvarConfig = () => {
     const taxa = parseFloat(taxaInput)
@@ -80,7 +81,7 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
     onToast('Configurações salvas!', 'sucesso')
   }
 
-  const handleTrocarSenha = () => {
+  const handleTrocarSenha = async () => {
     setErroSenha('')
     if (!senhaAtual || !novaSenha || !confirmarSenha) {
       setErroSenha('Preencha todos os campos.')
@@ -90,16 +91,45 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
       setErroSenha('A nova senha e a confirmação não coincidem.')
       return
     }
-    if (!currentUser) return
-    const result = changePassword(currentUser.userId, senhaAtual, novaSenha)
-    if (!result.success) {
-      setErroSenha(result.error)
+    if (novaSenha.length < 6) {
+      setErroSenha('Nova senha deve ter pelo menos 6 caracteres.')
       return
     }
+    if (!currentUser) return
+
+    setTrocandoSenha(true)
+
+    // Verifica senha atual via re-autenticação
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: currentUser.email,
+      password: senhaAtual,
+    })
+    if (signInError) {
+      setErroSenha('Senha atual incorreta.')
+      setTrocandoSenha(false)
+      return
+    }
+
+    // Atualiza a senha no Supabase Auth
+    const { error: updateError } = await supabase.auth.updateUser({ password: novaSenha })
+    if (updateError) {
+      setErroSenha('Erro ao alterar senha. Tente novamente.')
+      setTrocandoSenha(false)
+      return
+    }
+
+    // Marca no perfil que a senha foi alterada (remove o aviso de senha padrão)
+    await supabase
+      .from('users')
+      .update({ password_changed: true })
+      .eq('id', currentUser.userId)
+
     setSenhaAtual('')
     setNovaSenha('')
     setConfirmarSenha('')
+    setTrocandoSenha(false)
     onToast('Senha alterada com sucesso!', 'sucesso')
+    await refreshProfile()
   }
 
   const handleExportarJSON = () => {
@@ -117,11 +147,11 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       try {
         const data = JSON.parse(ev.target?.result as string)
         if (!Array.isArray(data)) throw new Error('Formato inválido')
-        onImport(data as Lancamento[])
+        await onImport(data as Lancamento[])
         onToast(`${data.length} lançamentos importados!`, 'sucesso')
       } catch {
         onToast('Falha ao importar. Verifique o arquivo JSON.', 'erro')
@@ -131,13 +161,14 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
     e.target.value = ''
   }
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (!confirmReset) {
       setConfirmReset(true)
       setTimeout(() => setConfirmReset(false), 3000)
       return
     }
-    if (currentUser) clearUserData(currentUser.userId)
+    // Limpa todos os lançamentos e reseta config
+    await onImport([])
     onResetConfig()
     onToast('Dados resetados para o padrão', 'info')
     setConfirmReset(false)
@@ -184,7 +215,7 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
               type={showPasswords ? 'text' : 'password'}
               value={novaSenha}
               onChange={e => setNovaSenha(e.target.value)}
-              placeholder="Min. 4 caracteres"
+              placeholder="Mín. 6 caracteres"
               className={inputClass}
             />
           </Field>
@@ -204,9 +235,10 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
         <div className="flex flex-wrap gap-3 items-center">
           <button
             onClick={handleTrocarSenha}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md"
+            disabled={trocandoSenha}
+            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md"
           >
-            Alterar Senha
+            {trocandoSenha ? 'Alterando...' : 'Alterar Senha'}
           </button>
           <button
             onClick={() => setShowPasswords(p => !p)}
@@ -282,10 +314,10 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
       {/* Dados e backup */}
       <Section titulo="Dados e Backup" icon="💾">
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-          {lancamentos.length} lançamento{lancamentos.length !== 1 ? 's' : ''} armazenado{lancamentos.length !== 1 ? 's' : ''} no navegador.
+          {lancamentos.length} lançamento{lancamentos.length !== 1 ? 's' : ''} armazenado{lancamentos.length !== 1 ? 's' : ''} no Supabase.
         </p>
         <p className="text-xs text-gray-400 dark:text-gray-500 mb-5">
-          Os dados persistem ao fechar o browser ou reiniciar o computador.
+          Os dados são sincronizados em tempo real e ficam seguros na nuvem.
         </p>
         <div className="flex flex-wrap gap-3">
           <button

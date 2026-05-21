@@ -1,38 +1,110 @@
-import { createContext, useContext, useState, useCallback } from 'react'
-import { Session } from '../types/auth'
-import { authLogin, authLogout, getSession, ensureAdminUser } from '../utils/authStorage'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { supabase } from '../lib/supabaseClient'
+import { UserProfile } from '../types/auth'
 
 interface AuthContextValue {
-  currentUser: Session | null
+  currentUser: UserProfile | null
+  loading: boolean
   isAuthenticated: boolean
-  login: (username: string, password: string) => { success: boolean; error?: string }
-  logout: () => void
+  login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>
+  logout: () => Promise<void>
+  refreshProfile: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<Session | null>(() => {
-    ensureAdminUser()
-    return getSession()
-  })
+async function fetchProfile(userId: string): Promise<UserProfile | null> {
+  const { data, error } = await supabase
+    .from('users')
+    .select('username, email, display_name, role, percentage, password_changed')
+    .eq('id', userId)
+    .single()
 
-  const login = useCallback((username: string, password: string) => {
-    const result = authLogin(username, password)
-    if (result.success) {
-      setCurrentUser(result.session)
-      return { success: true }
-    }
-    return { success: false, error: result.error }
+  if (error || !data) return null
+
+  return {
+    userId,
+    username: data.username,
+    email: data.email,
+    displayName: data.display_name,
+    role: data.role as 'admin' | 'user',
+    percentage: data.percentage,
+    passwordChanged: data.password_changed,
+  }
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // Restaura sessão existente ao carregar
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        const profile = await fetchProfile(session.user.id)
+        setCurrentUser(profile)
+      }
+      setLoading(false)
+    })
+
+    // Escuta mudanças de autenticação (login, logout, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        const profile = await fetchProfile(session.user.id)
+        setCurrentUser(profile)
+      } else {
+        setCurrentUser(null)
+      }
+      setLoading(false)
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
-  const logout = useCallback(() => {
-    authLogout()
+  const login = useCallback(async (username: string, password: string) => {
+    // Resolve username → email via função SECURITY DEFINER (sem precisar estar autenticado)
+    const { data: email, error: fnError } = await supabase.rpc('get_email_by_username', {
+      p_username: username.trim(),
+    })
+
+    if (fnError || !email) {
+      return { success: false, error: 'Usuário não encontrado.' }
+    }
+
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
+
+    if (authError) {
+      const msg = authError.message.toLowerCase()
+      if (msg.includes('invalid') || msg.includes('credentials')) {
+        return { success: false, error: 'Senha incorreta.' }
+      }
+      return { success: false, error: 'Falha na autenticação. Tente novamente.' }
+    }
+
+    return { success: true }
+  }, [])
+
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut()
     setCurrentUser(null)
   }, [])
 
+  const refreshProfile = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const profile = await fetchProfile(user.id)
+    if (profile) setCurrentUser(profile)
+  }, [])
+
   return (
-    <AuthContext.Provider value={{ currentUser, isAuthenticated: currentUser !== null, login, logout }}>
+    <AuthContext.Provider value={{
+      currentUser,
+      loading,
+      isAuthenticated: currentUser !== null,
+      login,
+      logout,
+      refreshProfile,
+    }}>
       {children}
     </AuthContext.Provider>
   )

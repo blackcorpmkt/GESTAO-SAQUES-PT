@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useAuth } from './contexts/AuthContext'
 import { Login } from './components/Login'
 import { Dashboard } from './components/Dashboard'
@@ -22,14 +22,29 @@ const ABAS: { key: Aba; label: string; icon: string }[] = [
   { key: 'configuracoes', label: 'Configurações', icon: '⚙' },
 ]
 
-// AppContent é separado para que os hooks sempre sejam chamados
-// (nunca condicionalmente), recebendo o userId do contexto
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl flex items-center justify-center text-white font-bold text-xl mx-auto mb-3 animate-pulse shadow-lg">
+          GS
+        </div>
+        <p className="text-sm text-gray-400 dark:text-gray-500">Carregando...</p>
+      </div>
+    </div>
+  )
+}
+
 function AppContent({ userId }: { userId: string }) {
-  const [aba, setAba] = useState<Aba>('dashboard')
-  const { config, updateConfig, resetConfig } = useConfig(userId)
-  const { lancamentos, addLancamento, toggleStatus, deleteLancamento, importLancamentos } = useLancamentos(userId)
   const { toasts, addToast, removeToast } = useToast()
   const { darkMode, toggleDarkMode } = useDarkMode()
+  const [aba, setAba] = useState<Aba>('dashboard')
+
+  // Callback estável para erros dos hooks — passa addToast sem criar função nova a cada render
+  const handleError = useCallback((msg: string) => addToast(msg, 'erro'), [addToast])
+
+  const { config, updateConfig, resetConfig } = useConfig(userId, handleError)
+  const { lancamentos, addLancamento, toggleStatus, deleteLancamento, importLancamentos } = useLancamentos(userId, handleError)
 
   const cotacao = config.cotacao_manual
 
@@ -154,12 +169,11 @@ function AppContent({ userId }: { userId: string }) {
 }
 
 export default function App() {
-  const { isAuthenticated, currentUser } = useAuth()
+  const { isAuthenticated, currentUser, loading } = useAuth()
 
-  if (!isAuthenticated || !currentUser) {
-    return <Login />
-  }
+  if (loading) return <LoadingScreen />
+  if (!isAuthenticated || !currentUser) return <Login />
 
-  // key={userId} garante que o AppContent é remontado ao trocar de conta
+  // key={userId} garante remontagem completa ao trocar de conta
   return <AppContent key={currentUser.userId} userId={currentUser.userId} />
 }
