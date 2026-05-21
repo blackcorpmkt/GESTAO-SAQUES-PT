@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Hourglass, CheckCircle2, CalendarDays, TrendingUp, type LucideIcon } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Hourglass, CheckCircle2, CalendarDays, TrendingUp, ShieldCheck, type LucideIcon } from 'lucide-react'
 import { Lancamento, Config } from '../types'
 import { formatarMoedaBR, formatarEUR, parseDateBR, formatDateBR } from '../utils/formatacao'
 import { useAuth } from '../contexts/AuthContext'
@@ -68,6 +69,29 @@ export function Dashboard({ lancamentos, config, onUpdateConfig }: Props) {
   useEffect(() => {
     setCotacaoInput(config.cotacao_manual != null ? String(config.cotacao_manual) : '')
   }, [config.cotacao_manual])
+
+  // Admin não opera lançamentos: em vez das métricas/cotação, mostra atalho ao Painel Admin.
+  if (currentUser?.role === 'admin') {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="max-w-md w-full text-center bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-8">
+          <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
+            <ShieldCheck className="w-7 h-7" />
+          </div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Acesso de administrador</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
+            Você está logado como administrador. Acesse o Painel Admin para visualizar os dados de todos os usuários.
+          </p>
+          <Link
+            to="/admin"
+            className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors shadow-sm hover:shadow-md"
+          >
+            <ShieldCheck className="w-5 h-5" /> Ir para o Painel Admin
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   const hoje = formatDateBR(new Date())
   const amanha = (() => { const d = new Date(); d.setDate(d.getDate() + 1); return formatDateBR(d) })()

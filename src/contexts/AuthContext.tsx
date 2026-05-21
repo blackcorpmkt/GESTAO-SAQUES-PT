@@ -1,6 +1,11 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabaseClient'
 import { UserProfile } from '../types/auth'
+
+// Se a inicialização travar (ex.: sessão não restaurada / fetch do perfil pendurado),
+// libera a UI após este tempo para cair no /login em vez de loading eterno.
+const AUTH_INIT_TIMEOUT_MS = 8000
 
 interface SignUpInput {
   displayName: string
@@ -46,27 +51,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Restaura sessão existente ao carregar
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const profile = await fetchProfile(session.user.id)
-        setCurrentUser(profile)
-      }
-      setLoading(false)
-    })
+    let cancelado = false
 
-    // Escuta mudanças de autenticação (login, logout, token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    // Timeout de segurança: se a inicialização não concluir, libera o loading.
+    // Com currentUser nulo, o App redireciona para /login (sem travar em "Carregando...").
+    const safety = setTimeout(() => {
+      if (!cancelado) setLoading(false)
+    }, AUTH_INIT_TIMEOUT_MS)
+
+    const finalizar = () => {
+      if (cancelado) return
+      clearTimeout(safety)
+      setLoading(false)
+    }
+
+    // Resolve a sessão (restaurada ou recém-criada) buscando o perfil correspondente.
+    // Se o perfil não existir / falhar, encerra a sessão em vez de ficar em loading eterno.
+    const aplicarSessao = async (session: Session | null) => {
+      if (cancelado) return
       if (session?.user) {
         const profile = await fetchProfile(session.user.id)
-        setCurrentUser(profile)
+        if (cancelado) return
+        if (profile) {
+          setCurrentUser(profile)
+        } else {
+          await supabase.auth.signOut()
+          if (cancelado) return
+          setCurrentUser(null)
+        }
       } else {
         setCurrentUser(null)
       }
-      setLoading(false)
+      finalizar()
+    }
+
+    // INITIAL_SESSION cobre a restauração de sessão ao carregar (substitui getSession,
+    // evitando a corrida em que o perfil era buscado antes da sessão estar pronta).
+    // SIGNED_IN cobre login/cadastro; SIGNED_OUT cobre logout.
+    // TOKEN_REFRESHED/USER_UPDATED são ignorados de propósito: não devem disparar
+    // signOut em falha transitória de fetch (deslogaria o usuário no refresh do token).
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        if (cancelado) return
+        setCurrentUser(null)
+        finalizar()
+      } else if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+        aplicarSessao(session)
+      }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      cancelado = true
+      clearTimeout(safety)
+      subscription.unsubscribe()
+    }
   }, [])
 
   const login = useCallback(async (username: string, password: string) => {
@@ -131,8 +169,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const logout = useCallback(async () => {
-    await supabase.auth.signOut()
+    try {
+      await supabase.auth.signOut()
+    } catch {
+      // Ignora falha de rede no signOut — limpamos o cache local de qualquer forma
+    }
     setCurrentUser(null)
+    // Limpeza defensiva: remove tokens do Supabase (sb-*) que possam ter ficado em cache,
+    // garantindo que não sobre sessão parcial. Preserva preferências de UI (tema, sidebar).
+    try {
+      Object.keys(localStorage)
+        .filter(k => k.startsWith('sb-'))
+        .forEach(k => localStorage.removeItem(k))
+    } catch {
+      // localStorage indisponível (ex.: modo privado) — nada a limpar
+    }
   }, [])
 
   const refreshProfile = useCallback(async () => {

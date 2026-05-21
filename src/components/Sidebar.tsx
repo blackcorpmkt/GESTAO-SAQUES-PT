@@ -28,15 +28,16 @@ interface Item {
   to: string
   label: string
   Icon: LucideIcon
-  adminOnly?: boolean
+  adminOnly?: boolean  // visível só para admin
+  userOnly?: boolean   // visível só para usuário comum (admin não opera lançamentos)
 }
 
 const ITEMS: Item[] = [
   { to: '/dashboard', label: 'Dashboard', Icon: LayoutDashboard },
-  { to: '/lancamentos', label: 'Lançamentos', Icon: ListOrdered },
-  { to: '/divisao-lucro', label: 'Divisão de Lucro', Icon: PieChart },
-  { to: '/relatorio', label: 'Relatório', Icon: FileText },
-  { to: '/socios', label: 'Sócios', Icon: Handshake },
+  { to: '/lancamentos', label: 'Lançamentos', Icon: ListOrdered, userOnly: true },
+  { to: '/divisao-lucro', label: 'Divisão de Lucro', Icon: PieChart, userOnly: true },
+  { to: '/relatorio', label: 'Relatório', Icon: FileText, userOnly: true },
+  { to: '/socios', label: 'Sócios', Icon: Handshake, userOnly: true },
   { to: '/usuarios', label: 'Usuários', Icon: Users, adminOnly: true },
   { to: '/admin', label: 'Admin', Icon: ShieldCheck, adminOnly: true },
   { to: '/configuracoes', label: 'Configurações', Icon: Settings },
@@ -54,7 +55,12 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
       .toUpperCase()
       .slice(0, 2) || currentUser.username.slice(0, 2).toUpperCase()
 
-  const items = ITEMS.filter(i => !i.adminOnly || currentUser.role === 'admin')
+  const isAdmin = currentUser.role === 'admin'
+  const items = ITEMS.filter(i => {
+    if (i.adminOnly) return isAdmin
+    if (i.userOnly) return !isAdmin
+    return true
+  })
 
   return (
     <>

@@ -76,6 +76,7 @@ function AppContent({ userId }: { userId: string }) {
 
   const cotacao = config.cotacao_manual
   const pageTitle = TITLES[location.pathname] ?? 'Dashboard'
+  const isAdmin = currentUser?.role === 'admin'
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
@@ -118,13 +119,16 @@ function AppContent({ userId }: { userId: string }) {
                     config={config}
                     onUpdateConfig={updateConfig}
                   />
-                  <LancamentoForm
-                    cotacao={cotacao}
-                    taxaGateway={config.taxa_gateway}
-                    taxaFixaEur={config.taxa_fixa_eur}
-                    onAdd={addLancamento}
-                    onToast={addToast}
-                  />
+                  {/* Admin não faz lançamentos */}
+                  {!isAdmin && (
+                    <LancamentoForm
+                      cotacao={cotacao}
+                      taxaGateway={config.taxa_gateway}
+                      taxaFixaEur={config.taxa_fixa_eur}
+                      onAdd={addLancamento}
+                      onToast={addToast}
+                    />
+                  )}
                 </>
               }
             />
@@ -132,70 +136,78 @@ function AppContent({ userId }: { userId: string }) {
             <Route
               path="lancamentos"
               element={
-                <>
-                  <LancamentoForm
-                    cotacao={cotacao}
-                    taxaGateway={config.taxa_gateway}
-                    taxaFixaEur={config.taxa_fixa_eur}
-                    onAdd={addLancamento}
-                    onToast={addToast}
-                  />
-                  <LancamentosTable
-                    lancamentos={lancamentos}
-                    onToggleStatus={toggleStatus}
-                    onDelete={deleteLancamento}
-                    onUpdateCotacao={updateCotacao}
-                    onToast={addToast}
-                  />
-                </>
+                isAdmin ? <Navigate to="/dashboard" replace /> : (
+                  <>
+                    <LancamentoForm
+                      cotacao={cotacao}
+                      taxaGateway={config.taxa_gateway}
+                      taxaFixaEur={config.taxa_fixa_eur}
+                      onAdd={addLancamento}
+                      onToast={addToast}
+                    />
+                    <LancamentosTable
+                      lancamentos={lancamentos}
+                      onToggleStatus={toggleStatus}
+                      onDelete={deleteLancamento}
+                      onUpdateCotacao={updateCotacao}
+                      onToast={addToast}
+                    />
+                  </>
+                )
               }
             />
 
             <Route
               path="divisao-lucro"
               element={
-                <DivisaoLucro
-                  lancamentos={lancamentos}
-                  partners={partners}
-                  costs={costs}
-                  cotacao={cotacao}
-                  onAddCost={addCost}
-                  onRemoveCost={removeCost}
-                  onToast={addToast}
-                />
+                isAdmin ? <Navigate to="/dashboard" replace /> : (
+                  <DivisaoLucro
+                    lancamentos={lancamentos}
+                    partners={partners}
+                    costs={costs}
+                    cotacao={cotacao}
+                    onAddCost={addCost}
+                    onRemoveCost={removeCost}
+                    onToast={addToast}
+                  />
+                )
               }
             />
 
             <Route
               path="socios"
               element={
-                <Socios
-                  partners={partners}
-                  loading={partnersLoading}
-                  onAdd={addPartner}
-                  onUpdate={updatePartner}
-                  onToast={addToast}
-                />
+                isAdmin ? <Navigate to="/dashboard" replace /> : (
+                  <Socios
+                    partners={partners}
+                    loading={partnersLoading}
+                    onAdd={addPartner}
+                    onUpdate={updatePartner}
+                    onToast={addToast}
+                  />
+                )
               }
             />
 
             <Route
               path="relatorio"
               element={
-                <>
-                  <LancamentosTable
-                    lancamentos={lancamentos}
-                    onToggleStatus={toggleStatus}
-                    onDelete={deleteLancamento}
-                    onUpdateCotacao={updateCotacao}
-                    onToast={addToast}
-                  />
-                  <Relatorio
-                    lancamentos={lancamentos}
-                    nomeRelatorio={config.nome_relatorio}
-                    onToast={addToast}
-                  />
-                </>
+                isAdmin ? <Navigate to="/dashboard" replace /> : (
+                  <>
+                    <LancamentosTable
+                      lancamentos={lancamentos}
+                      onToggleStatus={toggleStatus}
+                      onDelete={deleteLancamento}
+                      onUpdateCotacao={updateCotacao}
+                      onToast={addToast}
+                    />
+                    <Relatorio
+                      lancamentos={lancamentos}
+                      nomeRelatorio={config.nome_relatorio}
+                      onToast={addToast}
+                    />
+                  </>
+                )
               }
             />
 
