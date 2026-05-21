@@ -80,6 +80,10 @@ export function Dashboard({ lancamentos, config, onUpdateConfig }: Props) {
 
   const cotacaoAtual = config.cotacao_manual
 
+  // Faturamento bruto: soma do valor bruto de TODOS os lançamentos (qualquer status)
+  const faturamentoBrutoEur = lancamentos.reduce((s, l) => s + l.valor_bruto_eur, 0)
+  const faturamentoBrutoBrl = cotacaoAtual != null ? faturamentoBrutoEur * cotacaoAtual : null
+
   // Percentual de sociedade (apenas para usuários comuns com % definido)
   const pct = currentUser?.role === 'user' ? (currentUser?.percentage ?? 0) : 0
   const showPct = pct > 0
@@ -104,7 +108,19 @@ export function Dashboard({ lancamentos, config, onUpdateConfig }: Props) {
   return (
     <div className="space-y-4">
       {/* Cards de métricas */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="relative overflow-hidden rounded-2xl p-5 shadow-sm border bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 transition-all duration-200 hover:shadow-md">
+          <div className="absolute top-0 right-0 w-24 h-24 rounded-full opacity-10 -translate-y-6 translate-x-6 bg-cyan-500" />
+          <div className="flex items-start justify-between mb-3">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Faturamento Bruto</p>
+            <span className="text-xl text-cyan-500">📈</span>
+          </div>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1 tabular-nums">{formatarEUR(faturamentoBrutoEur)}</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 font-medium tabular-nums">
+            {faturamentoBrutoBrl != null ? formatarMoedaBR(faturamentoBrutoBrl) : '—'}
+          </p>
+        </div>
+
         <MetricCard
           titulo="A receber (pendentes)"
           valorBRL={formatarMoedaBR(totalPendenteBrl)}

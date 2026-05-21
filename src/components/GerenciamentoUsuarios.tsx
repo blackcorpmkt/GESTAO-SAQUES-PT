@@ -70,6 +70,14 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
   const [modal, setModal] = useState<ModalState>(null)
   const [submitting, setSubmitting] = useState(false)
 
+  // Edição inline do percentual na listagem
+  const [editandoPctId, setEditandoPctId] = useState<string | null>(null)
+  const [pctEdit, setPctEdit] = useState('')
+  const [savingPct, setSavingPct] = useState(false)
+
+  const totalPct = users.reduce((s, u) => s + u.percentage, 0)
+  const totalPctFmt = totalPct.toLocaleString('pt-BR', { maximumFractionDigits: 2 })
+
   // Estado do formulário de criação
   const [createForm, setCreateForm] = useState({
     display_name: '',
@@ -109,6 +117,23 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
     setResetForm({ new_password: '', confirm_password: '' })
     setResetError('')
     setModal({ type: 'resetPassword', user })
+  }
+
+  const confirmarPct = async (u: UserRecord) => {
+    const val = parseFloat(pctEdit.replace(',', '.'))
+    if (isNaN(val) || val < 0 || val > 100) {
+      onToast('Percentual deve ser entre 0 e 100.', 'erro')
+      return
+    }
+    setSavingPct(true)
+    const result = await updateUser(u.userId, { percentage: val })
+    setSavingPct(false)
+    if (!result.success) {
+      onToast(result.error ?? 'Erro ao atualizar percentual.', 'erro')
+      return
+    }
+    onToast(`Percentual de @${u.username} atualizado!`, 'sucesso')
+    setEditandoPctId(null)
   }
 
   const handleCreate = async () => {
@@ -221,6 +246,10 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
             {!loading && (
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                 {users.length} usuário{users.length !== 1 ? 's' : ''} cadastrado{users.length !== 1 ? 's' : ''}
+                {' · '}
+                <span className={totalPct === 100 ? 'font-medium text-emerald-600 dark:text-emerald-400' : 'font-medium text-amber-600 dark:text-amber-400'}>
+                  Total: {totalPctFmt}%
+                </span>
               </p>
             )}
           </div>
@@ -271,8 +300,46 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
                     <td className="px-4 py-3.5 text-gray-400 dark:text-gray-500 hidden md:table-cell text-xs">
                       {u.email}
                     </td>
-                    <td className="px-4 py-3.5 text-center font-semibold text-gray-700 dark:text-gray-300 tabular-nums">
-                      {u.percentage}%
+                    <td className="px-4 py-3.5 text-center">
+                      {editandoPctId === u.userId ? (
+                        <div className="flex items-center justify-center gap-1">
+                          <input
+                            type="number" min="0" max="100" step="0.01"
+                            value={pctEdit}
+                            onChange={e => setPctEdit(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') confirmarPct(u)
+                              else if (e.key === 'Escape') setEditandoPctId(null)
+                            }}
+                            autoFocus
+                            className="w-16 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 text-xs text-center bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 tabular-nums"
+                          />
+                          <button
+                            onClick={() => confirmarPct(u)}
+                            disabled={savingPct}
+                            title="Confirmar percentual"
+                            className="w-6 h-6 flex items-center justify-center rounded-md bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white text-xs transition-colors"
+                          >
+                            ✓
+                          </button>
+                          <button
+                            onClick={() => setEditandoPctId(null)}
+                            title="Cancelar"
+                            className="w-6 h-6 flex items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400 text-xs transition-colors"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => { setEditandoPctId(u.userId); setPctEdit(String(u.percentage)) }}
+                          title="Editar percentual"
+                          className="inline-flex items-center gap-1 font-semibold text-gray-700 dark:text-gray-300 tabular-nums hover:text-blue-600 dark:hover:text-blue-400 transition-colors group"
+                        >
+                          {u.percentage}%
+                          <span className="text-xs text-gray-300 dark:text-gray-600 group-hover:text-blue-500">✎</span>
+                        </button>
+                      )}
                     </td>
                     <td className="px-4 py-3.5 text-center">
                       <RoleBadge role={u.role} />
