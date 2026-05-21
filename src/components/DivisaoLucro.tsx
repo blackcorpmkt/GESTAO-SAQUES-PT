@@ -3,7 +3,7 @@ import { ChevronDown, ChevronRight, Plus, Trash2, Inbox } from 'lucide-react'
 import { Lancamento } from '../types'
 import { Partner } from '../hooks/usePartners'
 import { LaunchCost, NewLaunchCost, MoedaCusto } from '../hooks/useLaunchCosts'
-import { formatarEUR, formatarMoedaBR, parseDateBR } from '../utils/formatacao'
+import { formatarEUR, formatarMoedaBR, parseDateBR, maskMoedaBR, parseMoedaBR } from '../utils/formatacao'
 
 interface Props {
   lancamentos: Lancamento[]
@@ -70,7 +70,7 @@ function LaunchRow({
 
   const handleAdd = () => {
     const d = desc.trim()
-    const a = num(valor)
+    const a = parseMoedaBR(valor)
     const usdRate = num(usd)
     if (!d) { onToast('Informe a descrição do custo.', 'erro'); return }
     if (a <= 0) { onToast('Informe um valor maior que zero.', 'erro'); return }
@@ -137,7 +137,7 @@ function LaunchRow({
             {/* Form adicionar custo */}
             <div className="flex flex-col sm:flex-row gap-2">
               <input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Descrição (ex: Anúncios)" className={`${inputClass} flex-1`} />
-              <input type="text" inputMode="decimal" value={valor} onChange={e => setValor(e.target.value)} placeholder="0,00" className={`${inputClass} sm:w-28 tabular-nums`} />
+              <input type="text" inputMode="decimal" value={valor} onChange={e => setValor(maskMoedaBR(e.target.value))} placeholder="0,00" className={`${inputClass} sm:w-28 tabular-nums`} />
               <select value={moeda} onChange={e => setMoeda(e.target.value as MoedaCusto)} className={selectClass}>
                 <option value="BRL">BRL</option>
                 <option value="USD">USD</option>

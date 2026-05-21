@@ -189,6 +189,60 @@ GRANT EXECUTE ON FUNCTION public.get_admin_profit_by_partner() TO authenticated;
 
 
 -- ─────────────────────────────────────────
+-- 4d. FUNÇÃO: get_partner_profit_detail(partner_name)
+-- Detalha o lucro de UM sócio (por nome, ILIKE) conta a conta — usada na busca
+-- da página /admin/lucros. Mesma lógica de lucro do get_admin_profit_by_partner,
+-- mas agrupando por conta (user_id) em vez de só pelo nome. LEFT JOIN garante
+-- listar contas onde o sócio participa mesmo sem lançamentos (lucro 0).
+-- ─────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION public.get_partner_profit_detail(partner_name text)
+RETURNS TABLE (
+  account_name      text,
+  account_username  text,
+  percentage        numeric,
+  profit_eur        numeric,
+  profit_brl        numeric
+)
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+AS $$
+  WITH launch_profit AS (
+    SELECT
+      l.user_id,
+      l.exchange_rate,
+      l.net_value_eur - COALESCE((
+        SELECT SUM(c.amount_eur)
+        FROM public.launch_costs c
+        WHERE c.launch_id = l.id
+      ), 0) AS profit_eur
+    FROM public.launches l
+  )
+  SELECT
+    u.display_name AS account_name,
+    u.username     AS account_username,
+    p.percentage,
+    COALESCE(SUM(lp.profit_eur * (p.percentage / 100.0)), 0)::numeric                    AS profit_eur,
+    COALESCE(SUM(lp.profit_eur * (p.percentage / 100.0) * lp.exchange_rate), 0)::numeric AS profit_brl
+  FROM public.partners p
+  JOIN public.users u ON u.id = p.user_id
+  LEFT JOIN launch_profit lp ON lp.user_id = p.user_id
+  WHERE p.active = true
+    AND p.name ILIKE get_partner_profit_detail.partner_name
+    AND EXISTS (
+      SELECT 1 FROM public.users au
+      WHERE au.id = auth.uid() AND au.role = 'admin'
+    )
+  GROUP BY u.display_name, u.username, p.percentage, p.user_id
+  ORDER BY profit_eur DESC;
+$$;
+
+-- Apenas autenticados (a guarda interna restringe o resultado a admins)
+GRANT EXECUTE ON FUNCTION public.get_partner_profit_detail(text) TO authenticated;
+
+
+-- ─────────────────────────────────────────
 -- 5. POLÍTICAS RLS
 -- ─────────────────────────────────────────
 --

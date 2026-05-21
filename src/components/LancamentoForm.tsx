@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { Lancamento } from '../types'
 import { addDiasUteis, calcularLiquido } from '../utils/calculos'
-import { formatDateBR, formatDateInput, getDiaSemana, formatarEUR, formatarMoedaBR } from '../utils/formatacao'
+import { formatDateBR, formatDateInput, getDiaSemana, formatarEUR, formatarMoedaBR, maskMoedaBR, parseMoedaBR } from '../utils/formatacao'
 
 interface Props {
   cotacao: number | null
@@ -18,7 +18,7 @@ export function LancamentoForm({ cotacao, taxaGateway, taxaFixaEur, onAdd, onToa
   const [numVendas, setNumVendas] = useState('')
   const [valorBruto, setValorBruto] = useState('')
 
-  const bruto = parseFloat(valorBruto.replace(',', '.')) || 0
+  const bruto = parseMoedaBR(valorBruto)
   const numV = parseInt(numVendas) || 0
   const liquido = bruto > 0 && numV > 0 ? calcularLiquido(bruto, taxaGateway, taxaFixaEur, numV) : 0
   const valorBrl = cotacao ? liquido * cotacao : 0
@@ -110,8 +110,8 @@ export function LancamentoForm({ cotacao, taxaGateway, taxaFixaEur, onAdd, onToa
               type="text"
               inputMode="decimal"
               value={valorBruto}
-              onChange={e => setValorBruto(e.target.value)}
-              placeholder="Ex: 359.64"
+              onChange={e => setValorBruto(maskMoedaBR(e.target.value))}
+              placeholder="Ex: 1.000,50"
               className="sf-input tabular-nums"
             />
           </div>

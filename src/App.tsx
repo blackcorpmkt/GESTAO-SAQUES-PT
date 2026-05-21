@@ -217,6 +217,8 @@ function AppContent({ userId }: { userId: string }) {
                     <Relatorio
                       lancamentos={lancamentos}
                       nomeRelatorio={config.nome_relatorio}
+                      costs={costs}
+                      partners={partners}
                       onToast={addToast}
                     />
                   </>

@@ -6,6 +6,7 @@ export interface Partner {
   name: string
   percentage: number
   active: boolean
+  createdAt: string
 }
 
 type Row = {
@@ -18,7 +19,7 @@ type Row = {
 }
 
 function mapRow(r: Row): Partner {
-  return { id: r.id, name: r.name, percentage: Number(r.percentage), active: r.active }
+  return { id: r.id, name: r.name, percentage: Number(r.percentage), active: r.active, createdAt: r.created_at }
 }
 
 export function usePartners(userId: string, onError?: (msg: string) => void) {

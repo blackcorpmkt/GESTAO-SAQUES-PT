@@ -41,13 +41,37 @@ export function Socios({ partners, loading, onAdd, onUpdate, onToast }: Props) {
   const totalAtivos = partners.filter(p => p.active).reduce((s, p) => s + p.percentage, 0)
   const totalFmt = totalAtivos.toLocaleString('pt-BR', { maximumFractionDigits: 2 })
 
+  // Sócio principal = registro mais antigo (criado com 100% no signup). Ele sempre
+  // fica com o percentual residual: 100 − soma dos demais sócios.
+  const principal = partners.reduce<Partner | null>(
+    (mais, p) => (!mais || p.createdAt < mais.createdAt ? p : mais),
+    null,
+  )
+
   const handleAdd = async () => {
     const nome = novoNome.trim()
     const pct = parseFloat(novoPct.replace(',', '.'))
     if (!nome) { onToast('Informe o nome do sócio.', 'erro'); return }
     if (isNaN(pct) || pct < 0 || pct > 100) { onToast('Percentual deve ser entre 0 e 100.', 'erro'); return }
+
+    // Soma dos sócios que NÃO são o principal (o novo entrará nesse grupo)
+    const outrosSum = partners
+      .filter(p => p.id !== principal?.id)
+      .reduce((s, p) => s + p.percentage, 0)
+
+    if (principal && outrosSum + pct > 100) {
+      const disponivel = (100 - outrosSum).toLocaleString('pt-BR', { maximumFractionDigits: 2 })
+      onToast(`A soma ultrapassaria 100%. Disponível para novos sócios: ${disponivel}%.`, 'erro')
+      return
+    }
+
     setSalvando(true)
     const r = await onAdd(nome, pct)
+    // Recalcula o residual do principal automaticamente no banco
+    if (r.success && principal) {
+      const residual = Math.max(0, 100 - (outrosSum + pct))
+      await onUpdate(principal.id, { percentage: residual })
+    }
     setSalvando(false)
     if (r.success) {
       onToast('Sócio adicionado!', 'sucesso')
@@ -142,8 +166,15 @@ export function Socios({ partners, loading, onAdd, onUpdate, onToast }: Props) {
               ) : (
                 <>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-800 dark:text-slate-200 truncate">{p.name}</p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500">{p.active ? 'Ativo' : 'Inativo'}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-slate-800 dark:text-slate-200 truncate">{p.name}</p>
+                      {p.id === principal?.id && (
+                        <span className="sf-badge sf-badge-info flex-shrink-0">Principal</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">
+                      {p.id === principal?.id ? 'Percentual residual (automático)' : p.active ? 'Ativo' : 'Inativo'}
+                    </p>
                   </div>
                   <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 tabular-nums w-16 text-right">{p.percentage}%</span>
                   <Toggle value={p.active} onChange={() => toggleActive(p)} />

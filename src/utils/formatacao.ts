@@ -19,6 +19,26 @@ export function formatarBRLRelatorio(valor: number): string {
   return 'R$' + valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
+// Máscara de moeda pt-BR enquanto digita: milhar com ponto (.), decimal com
+// vírgula (,) e no máximo 2 casas. Ex.: "10000,5" -> "10.000,5"; "1000050" -> "1.000.050".
+export function maskMoedaBR(raw: string): string {
+  const limpo = raw.replace(/[^\d,]/g, '')
+  if (!limpo) return ''
+  const temVirgula = limpo.includes(',')
+  const [intRaw, ...decParts] = limpo.split(',')
+  const intDigits = intRaw.replace(/^0+(?=\d)/, '') // tira zeros à esquerda (mantém um "0")
+  const intFmt = (intDigits || '0').replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  if (!temVirgula) return intFmt
+  const dec = decParts.join('').slice(0, 2)
+  return `${intFmt},${dec}`
+}
+
+// Converte a string mascarada ("10.000,50") em número (10000.5).
+export function parseMoedaBR(masked: string): number {
+  const n = parseFloat(masked.replace(/\./g, '').replace(',', '.'))
+  return isNaN(n) ? 0 : n
+}
+
 export function parseDateBR(dateStr: string): Date {
   const [d, m, y] = dateStr.split('/')
   return new Date(parseInt(y), parseInt(m) - 1, parseInt(d))

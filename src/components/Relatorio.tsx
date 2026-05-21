@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react'
 import { FileText, Copy, Check, Download, Inbox } from 'lucide-react'
 import { Lancamento } from '../types'
+import { LaunchCost } from '../hooks/useLaunchCosts'
+import { Partner } from '../hooks/usePartners'
 import { gerarRelatorio } from '../utils/relatorio'
 import { formatarEUR, formatarMoedaBR, parseDateBR, getDiaSemanaVenda } from '../utils/formatacao'
 
 interface Props {
   lancamentos: Lancamento[]
   nomeRelatorio: string
+  costs: LaunchCost[]
+  partners: Partner[]
   onToast: (msg: string, tipo?: 'sucesso' | 'erro' | 'info') => void
 }
 
-export function Relatorio({ lancamentos, nomeRelatorio, onToast }: Props) {
+export function Relatorio({ lancamentos, nomeRelatorio, costs, partners, onToast }: Props) {
   const [copiado, setCopiado] = useState(false)
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set())
 
@@ -37,7 +41,7 @@ export function Relatorio({ lancamentos, nomeRelatorio, onToast }: Props) {
   const limparSelecao = () => setSelecionados(new Set())
 
   const lancamentosSelecionados = pendentes.filter(l => selecionados.has(l.id))
-  const texto = gerarRelatorio(lancamentosSelecionados, nomeRelatorio)
+  const texto = gerarRelatorio(lancamentosSelecionados, nomeRelatorio, costs, partners)
 
   const handleCopiar = async () => {
     if (lancamentosSelecionados.length === 0) {
