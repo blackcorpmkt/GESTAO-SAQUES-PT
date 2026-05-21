@@ -1,28 +1,196 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@500;600;700&family=JetBrains+Mono:wght@500;600&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* =========================================================================
+   SaqueFlow — base typography & theme
+   ========================================================================= */
 @layer base {
+  :root { color-scheme: light; }
+  .dark { color-scheme: dark; }
+
   html {
     @apply scroll-smooth;
   }
   body {
-    @apply text-gray-900 antialiased;
-    font-feature-settings: 'tnum' 1;
+    @apply bg-slate-50 text-slate-900 antialiased dark:bg-slate-900 dark:text-slate-100;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    font-feature-settings: 'cv11', 'ss01', 'ss03', 'tnum' 1;
+  }
+
+  /* Typed numeric controls share the mono cadence used across the app */
+  input[type='number'] {
+    font-variant-numeric: tabular-nums;
   }
 }
 
+/* =========================================================================
+   SaqueFlow — reusable component primitives
+   (Tailwind @apply keeps light + dark variants in one place)
+   ========================================================================= */
+@layer components {
+  /* ---- Surfaces -------------------------------------------------------- */
+  .sf-card {
+    @apply bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-card;
+  }
+  .sf-card-head {
+    @apply flex items-center justify-between gap-3 px-5 py-4 border-b border-slate-200 dark:border-slate-700;
+  }
+  .sf-card-title {
+    @apply font-display text-[15px] font-semibold tracking-[-0.01em] text-slate-900 dark:text-white;
+  }
+  .sf-card-sub {
+    @apply text-xs text-slate-500 dark:text-slate-400 mt-0.5;
+  }
+
+  /* ---- Buttons --------------------------------------------------------- */
+  .sf-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-[13px] font-medium
+           border border-slate-200 dark:border-slate-700
+           bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200
+           transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/60
+           disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap;
+  }
+  .sf-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-[13px] font-semibold
+           border border-transparent bg-blue-600 text-white shadow-sm
+           transition-colors hover:bg-blue-700 active:bg-blue-800
+           disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap;
+  }
+  .sf-btn-success {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-[13px] font-semibold
+           border border-transparent bg-emerald-600 text-white shadow-sm
+           transition-colors hover:bg-emerald-700 active:bg-emerald-800
+           disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap;
+  }
+  .sf-btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-[13px] font-semibold
+           border border-transparent bg-red-500 text-white shadow-sm
+           transition-colors hover:bg-red-600 active:bg-red-700
+           disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap;
+  }
+  .sf-btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium
+           border border-transparent bg-transparent text-slate-500 dark:text-slate-400
+           transition-colors hover:bg-slate-100 dark:hover:bg-slate-700/60 hover:text-slate-700 dark:hover:text-slate-200;
+  }
+
+  /* ---- Forms ----------------------------------------------------------- */
+  .sf-input {
+    @apply w-full rounded-lg border border-slate-200 dark:border-slate-600
+           bg-slate-50 dark:bg-slate-900/40 px-3.5 py-2.5 text-sm
+           text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500
+           transition focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30;
+  }
+  .sf-select {
+    @apply rounded-lg border border-slate-200 dark:border-slate-600
+           bg-slate-50 dark:bg-slate-900/40 px-3 py-2.5 text-sm
+           text-slate-900 dark:text-slate-100
+           transition focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30;
+  }
+  .sf-label {
+    @apply block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5;
+  }
+  .sf-hint {
+    @apply text-xs text-slate-400 dark:text-slate-500 mt-1;
+  }
+
+  /* ---- Filter chips ---------------------------------------------------- */
+  .sf-chip {
+    @apply inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-[12.5px] font-medium
+           border border-slate-200 dark:border-slate-700
+           bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400
+           transition-colors hover:text-slate-700 dark:hover:text-slate-200;
+  }
+  .sf-chip-active {
+    @apply border-blue-200 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300;
+  }
+  .sf-chip-count {
+    @apply rounded-full px-1.5 py-px text-[10.5px] font-semibold bg-slate-900/[0.06] dark:bg-white/10;
+  }
+  .sf-chip-active .sf-chip-count {
+    @apply bg-blue-500/15 text-blue-700 dark:text-blue-300;
+  }
+
+  /* ---- Status / pill badges ------------------------------------------- */
+  .sf-badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-semibold whitespace-nowrap;
+  }
+  .sf-dot { @apply w-1.5 h-1.5 rounded-full bg-current; }
+  .sf-badge-success { @apply bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300; }
+  .sf-badge-warning { @apply bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300; }
+  .sf-badge-danger  { @apply bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300; }
+  .sf-badge-info    { @apply bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300; }
+  .sf-badge-violet  { @apply bg-violet-50 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300; }
+  .sf-badge-neutral { @apply bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300; }
+
+  /* ---- KPI cards ------------------------------------------------------- */
+  .sf-kpi {
+    @apply relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700
+           bg-white dark:bg-slate-800 p-[18px] shadow-card;
+  }
+  .sf-kpi-label {
+    @apply text-[12.5px] font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap;
+  }
+  .sf-kpi-icon {
+    @apply w-8 h-8 rounded-lg grid place-items-center flex-shrink-0;
+  }
+  .sf-kpi-icon-blue   { @apply bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400; }
+  .sf-kpi-icon-green  { @apply bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400; }
+  .sf-kpi-icon-amber  { @apply bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400; }
+  .sf-kpi-icon-violet { @apply bg-violet-50 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400; }
+  .sf-kpi-value {
+    @apply font-display text-[26px] leading-none font-semibold tracking-[-0.025em] text-slate-900 dark:text-white tabular-nums;
+  }
+
+  /* ---- Trend pills ----------------------------------------------------- */
+  .sf-trend {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-semibold;
+  }
+  .sf-trend-up   { @apply bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300; }
+  .sf-trend-down { @apply bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300; }
+  .sf-trend-flat { @apply bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300; }
+
+  /* ---- Data table ------------------------------------------------------ */
+  .sf-table { @apply w-full text-sm border-collapse; }
+  .sf-table thead th {
+    @apply px-4 py-3 text-left text-[11.5px] font-semibold uppercase tracking-[0.06em]
+           text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700
+           bg-slate-50/80 dark:bg-slate-800/60;
+  }
+  .sf-table tbody td {
+    @apply px-4 py-3.5 align-middle border-b border-slate-100 dark:border-slate-700/60;
+  }
+  .sf-table tbody tr { @apply transition-colors; }
+  .sf-table tbody tr:hover { @apply bg-slate-50/70 dark:bg-slate-800/40; }
+  .sf-table tbody tr:last-child td { @apply border-b-0; }
+
+  /* ---- Modal ----------------------------------------------------------- */
+  .sf-modal-overlay {
+    @apply fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm;
+  }
+  .sf-modal {
+    @apply w-full bg-white dark:bg-slate-800 rounded-2xl shadow-pop border border-slate-200 dark:border-slate-700 overflow-hidden;
+  }
+
+  /* ---- Square icon button (topbar) ------------------------------------ */
+  .sf-icon-btn {
+    @apply w-9 h-9 grid place-items-center rounded-lg border border-slate-200 dark:border-slate-700
+           bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400
+           transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/60 hover:text-slate-900 dark:hover:text-white;
+  }
+}
+
+/* =========================================================================
+   Animations / utilities
+   ========================================================================= */
 @layer utilities {
-  .animate-slide-in {
-    animation: slideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .animate-fade-in {
-    animation: fadeIn 0.2s ease-out;
-  }
-  .tabular-nums {
-    font-variant-numeric: tabular-nums;
-  }
+  .animate-slide-in { animation: slideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
+  .animate-fade-in { animation: fadeIn 0.2s ease-out; }
+  .tabular-nums { font-variant-numeric: tabular-nums; }
 }
 
 @keyframes slideIn {

@@ -1,16 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Hourglass, CheckCircle2, CalendarDays, TrendingUp, ShieldCheck, type LucideIcon } from 'lucide-react'
+import { Hourglass, CheckCircle2, CalendarDays, TrendingUp, ShieldCheck, ArrowRight, type LucideIcon } from 'lucide-react'
 import { Lancamento, Config } from '../types'
 import { formatarMoedaBR, formatarEUR, parseDateBR, formatDateBR } from '../utils/formatacao'
 import { useAuth } from '../contexts/AuthContext'
 
-const CARD_COR: Record<string, string> = {
-  blue: 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400',
-  emerald: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400',
-  violet: 'bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400',
-  cyan: 'bg-cyan-100 text-cyan-600 dark:bg-cyan-900/40 dark:text-cyan-400',
-}
+type Tone = 'blue' | 'green' | 'amber' | 'violet'
 
 interface Props {
   lancamentos: Lancamento[]
@@ -24,36 +19,32 @@ function MetricCard({
   valorEUR,
   badge,
   Icon,
-  cor,
+  tone,
 }: {
   titulo: string
   valorBRL: string
   valorEUR: string
   badge?: React.ReactNode
   Icon: LucideIcon
-  cor: keyof typeof CARD_COR
+  tone: Tone
 }) {
   return (
-    <div className="rounded-xl p-5 shadow-sm border bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 transition-all duration-200 hover:shadow-md">
-      <div className="flex items-start justify-between mb-3">
-        <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{titulo}</p>
-        <span className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${CARD_COR[cor]}`}>
-          <Icon className="w-5 h-5" />
+    <div className="sf-kpi">
+      <div className="flex items-center justify-between mb-3.5">
+        <span className="sf-kpi-label">{titulo}</span>
+        <span className={`sf-kpi-icon sf-kpi-icon-${tone}`}>
+          <Icon className="w-4 h-4" />
         </span>
       </div>
-      <p className="text-[28px] leading-tight font-bold text-gray-900 dark:text-white mb-1 tabular-nums">{valorBRL}</p>
-      <p className="text-sm text-gray-400 dark:text-gray-500 font-medium tabular-nums">{valorEUR}</p>
-      {badge && <div className="mt-2">{badge}</div>}
+      <p className="sf-kpi-value">{valorBRL}</p>
+      <p className="text-[13px] text-slate-500 dark:text-slate-400 font-medium tabular-nums mt-1.5">{valorEUR}</p>
+      {badge && <div className="mt-3">{badge}</div>}
     </div>
   )
 }
 
-function Badge({ children, cor }: { children: React.ReactNode; cor: string }) {
-  return (
-    <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${cor}`}>
-      {children}
-    </span>
-  )
+function Badge({ children, tone }: { children: React.ReactNode; tone: 'info' | 'success' | 'violet' | 'warning' | 'neutral' }) {
+  return <span className={`sf-badge sf-badge-${tone}`}>{children}</span>
 }
 
 export function Dashboard({ lancamentos, config, onUpdateConfig }: Props) {
@@ -74,19 +65,19 @@ export function Dashboard({ lancamentos, config, onUpdateConfig }: Props) {
   if (currentUser?.role === 'admin') {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="max-w-md w-full text-center bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-8">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
+        <div className="max-w-md w-full text-center sf-card p-8">
+          <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-blue-50 dark:bg-blue-500/15 flex items-center justify-center text-blue-600 dark:text-blue-400">
             <ShieldCheck className="w-7 h-7" />
           </div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Acesso de administrador</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
+          <h2 className="font-display text-lg font-semibold text-slate-900 dark:text-white mb-2 tracking-[-0.01em]">
+            Acesso de administrador
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
             Você está logado como administrador. Acesse o Painel Admin para visualizar os dados de todos os usuários.
           </p>
-          <Link
-            to="/admin"
-            className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors shadow-sm hover:shadow-md"
-          >
-            <ShieldCheck className="w-5 h-5" /> Ir para o Painel Admin
+          <Link to="/admin" className="sf-btn-primary px-5 py-2.5">
+            <ShieldCheck className="w-[18px] h-[18px]" /> Ir para o Painel Admin
+            <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </div>
@@ -139,38 +130,33 @@ export function Dashboard({ lancamentos, config, onUpdateConfig }: Props) {
     : '—'
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Cards de métricas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="rounded-xl p-5 shadow-sm border bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 transition-all duration-200 hover:shadow-md">
-          <div className="flex items-start justify-between mb-3">
-            <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Faturamento Bruto</p>
-            <span className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 bg-cyan-100 text-cyan-600 dark:bg-cyan-900/40 dark:text-cyan-400">
-              <TrendingUp className="w-5 h-5" />
-            </span>
-          </div>
-          <p className="text-[28px] leading-tight font-bold text-gray-900 dark:text-white mb-1 tabular-nums">{formatarEUR(faturamentoBrutoEur)}</p>
-          <p className="text-sm text-gray-400 dark:text-gray-500 font-medium tabular-nums">
-            {faturamentoBrutoBrl != null ? formatarMoedaBR(faturamentoBrutoBrl) : '—'}
-          </p>
-        </div>
+        <MetricCard
+          titulo="Faturamento Bruto"
+          valorBRL={faturamentoBrutoBrl != null ? formatarMoedaBR(faturamentoBrutoBrl) : '—'}
+          valorEUR={formatarEUR(faturamentoBrutoEur)}
+          Icon={TrendingUp}
+          tone="violet"
+        />
 
         <MetricCard
           titulo="A receber (pendentes)"
           valorBRL={formatarMoedaBR(totalPendenteBrl)}
           valorEUR={formatarEUR(totalPendenteEur)}
           Icon={Hourglass}
-          cor="blue"
+          tone="amber"
           badge={
             pendentes.length > 0 || showPct ? (
               <div className="flex flex-wrap gap-1.5">
                 {pendentes.length > 0 && (
-                  <Badge cor="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                  <Badge tone="warning">
                     {pendentes.length} lançamento{pendentes.length !== 1 ? 's' : ''} pendente{pendentes.length !== 1 ? 's' : ''}
                   </Badge>
                 )}
                 {showPct && (
-                  <Badge cor="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300">
+                  <Badge tone="info">
                     Sua parte ({pct}%): {formatarEUR(totalPendenteEur * pct / 100)}
                   </Badge>
                 )}
@@ -184,17 +170,17 @@ export function Dashboard({ lancamentos, config, onUpdateConfig }: Props) {
           valorBRL={formatarMoedaBR(totalRecebidoBrl)}
           valorEUR={formatarEUR(totalRecebidoEur)}
           Icon={CheckCircle2}
-          cor="emerald"
+          tone="green"
           badge={
             recebidos.length > 0 || showPct ? (
               <div className="flex flex-wrap gap-1.5">
                 {recebidos.length > 0 && (
-                  <Badge cor="bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
+                  <Badge tone="success">
                     {recebidos.length} recebido{recebidos.length !== 1 ? 's' : ''}
                   </Badge>
                 )}
                 {showPct && (
-                  <Badge cor="bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-300">
+                  <Badge tone="success">
                     Sua parte ({pct}%): {formatarEUR(totalRecebidoEur * pct / 100)}
                   </Badge>
                 )}
@@ -204,66 +190,54 @@ export function Dashboard({ lancamentos, config, onUpdateConfig }: Props) {
         />
 
         {proximoRecebimento ? (
-          <div className="rounded-xl p-5 shadow-sm border bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:shadow-md transition-all duration-200">
-            <div className="flex items-start justify-between mb-3">
-              <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Próximo recebimento</p>
-              <span className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400">
-                <CalendarDays className="w-5 h-5" />
+          <div className="sf-kpi">
+            <div className="flex items-center justify-between mb-3.5">
+              <span className="sf-kpi-label">Próximo recebimento</span>
+              <span className="sf-kpi-icon sf-kpi-icon-blue">
+                <CalendarDays className="w-4 h-4" />
               </span>
             </div>
-            <p className="text-[28px] leading-tight font-bold text-gray-900 dark:text-white mb-1 tabular-nums">
-              {formatarMoedaBR(proximoRecebimento.valor_brl)}
-            </p>
-            <p className="text-sm text-gray-400 dark:text-gray-500 font-medium tabular-nums">
+            <p className="sf-kpi-value">{formatarMoedaBR(proximoRecebimento.valor_brl)}</p>
+            <p className="text-[13px] text-slate-500 dark:text-slate-400 font-medium tabular-nums mt-1.5">
               {formatarEUR(proximoRecebimento.valor_liquido_eur)}
             </p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              <Badge cor="bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-300">
-                {proximoRecebimento.data_recebimento}
-              </Badge>
-              {proxEhHoje && (
-                <Badge cor="bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300">Hoje!</Badge>
-              )}
-              {proxEhAmanha && (
-                <Badge cor="bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300">Amanhã</Badge>
-              )}
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              <Badge tone="info">{proximoRecebimento.data_recebimento}</Badge>
+              {proxEhHoje && <Badge tone="warning">Hoje!</Badge>}
+              {proxEhAmanha && <Badge tone="violet">Amanhã</Badge>}
             </div>
           </div>
         ) : (
-          <MetricCard titulo="Próximo recebimento" valorBRL="—" valorEUR="Sem pendentes" Icon={CalendarDays} cor="violet" />
+          <MetricCard titulo="Próximo recebimento" valorBRL="—" valorEUR="Sem pendentes" Icon={CalendarDays} tone="blue" />
         )}
       </div>
 
       {/* Card de cotação manual */}
-      <div className="rounded-2xl p-5 shadow-sm border bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+      <div className="sf-card p-5 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-6">
           <div className="flex-1">
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-              Cotação EUR/BRL
-            </p>
+            <p className="sf-kpi-label uppercase tracking-wider mb-2">Cotação EUR/BRL</p>
             {cotacaoAtual != null ? (
               <>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white tabular-nums">
+                <p className="font-display text-3xl font-semibold text-slate-900 dark:text-white tabular-nums tracking-[-0.02em]">
                   R$ {cotacaoDisplay}
                 </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5">
                   Cotação manual ativa — usada em todos os cálculos
                 </p>
               </>
             ) : (
               <>
-                <p className="text-3xl font-bold text-gray-400 dark:text-gray-600">—</p>
-                <p className="text-xs text-red-500 dark:text-red-400 mt-1">
-                  Nenhuma cotação definida. Defina abaixo para calcular valores em R$.
+                <p className="font-display text-3xl font-semibold text-slate-300 dark:text-slate-600">—</p>
+                <p className="text-xs text-red-500 dark:text-red-400 mt-1.5">
+                  Nenhuma cotação definida. Defina ao lado para calcular valores em R$.
                 </p>
               </>
             )}
           </div>
 
-          <div className="flex flex-col gap-2 sm:min-w-[260px]">
-            <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-              Definir cotação manualmente
-            </label>
+          <div className="flex flex-col gap-2 sm:min-w-[280px]">
+            <label className="sf-label mb-0">Definir cotação manualmente</label>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -272,15 +246,11 @@ export function Dashboard({ lancamentos, config, onUpdateConfig }: Props) {
                 onChange={e => { setCotacaoInput(e.target.value); setErro('') }}
                 onKeyDown={e => e.key === 'Enter' && handleSalvar()}
                 placeholder="Ex: 5.83"
-                className="flex-1 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 tabular-nums"
+                className="sf-input flex-1 tabular-nums"
               />
               <button
                 onClick={handleSalvar}
-                className={`text-sm font-semibold px-4 py-2 rounded-xl transition-all whitespace-nowrap ${
-                  salvando
-                    ? 'bg-emerald-500 text-white'
-                    : 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md'
-                }`}
+                className={salvando ? 'sf-btn-success' : 'sf-btn-primary'}
               >
                 {salvando ? '✓ Salvo' : 'Definir'}
               </button>

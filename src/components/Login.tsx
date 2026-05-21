@@ -1,12 +1,12 @@
 import { useState } from 'react'
+import { Eye, EyeOff, AlertCircle } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { BrandMark } from './BrandMark'
 
 type Mode = 'login' | 'signup'
 
-const inputClass =
-  'w-full border border-gray-200 dark:border-gray-600 rounded-xl px-3.5 py-2.5 text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all'
-
-const labelClass = 'block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5'
+const inputClass = 'sf-input'
+const labelClass = 'sf-label'
 
 const USERNAME_RE = /^[a-zA-Z0-9_]+$/
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -73,27 +73,31 @@ export function Login() {
     // Se success, signInWithPassword abre a sessão → App redireciona para /dashboard
   }
 
+  const ErrorBox = () =>
+    error ? (
+      <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg px-4 py-3 text-sm text-red-700 dark:text-red-300 flex items-center gap-2">
+        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+        <span>{error}</span>
+      </div>
+    ) : null
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-xl mx-auto mb-4">
-            GS
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gestão de Saques</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {mode === 'login' ? 'Portugal · Acesso restrito' : 'Portugal · Criar nova conta'}
+        {/* Logo / marca */}
+        <div className="flex flex-col items-center text-center mb-8">
+          <BrandMark size={60} className="mb-4 shadow-xl" />
+          <h1 className="font-display text-2xl font-semibold text-slate-900 dark:text-white tracking-[-0.02em]">SaqueFlow</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            {mode === 'login' ? 'Portugal · EUR · Acesso restrito' : 'Portugal · EUR · Criar nova conta'}
           </p>
         </div>
 
         {/* Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 p-8">
+        <div className="sf-card shadow-pop p-8">
           {mode === 'login' ? (
             <div key="login" className="animate-slide-in">
-              <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-6">
-                Entrar na sua conta
-              </h2>
+              <h2 className="sf-card-title mb-6">Entrar na sua conta</h2>
 
               <form onSubmit={handleLogin} className="space-y-4">
                 <div>
@@ -123,30 +127,25 @@ export function Login() {
                     <button
                       type="button"
                       onClick={() => setShowPass(p => !p)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                     >
-                      {showPass ? '🙈' : '👁'}
+                      {showPass ? <EyeOff className="w-[18px] h-[18px]" /> : <Eye className="w-[18px] h-[18px]" />}
                     </button>
                   </div>
                 </div>
 
-                {error && (
-                  <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3 text-sm text-red-700 dark:text-red-400 flex items-center gap-2">
-                    <span>✕</span>
-                    <span>{error}</span>
-                  </div>
-                )}
+                <ErrorBox />
 
                 <button
                   type="submit"
                   disabled={loading || !username.trim() || !password}
-                  className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md mt-2"
+                  className="sf-btn-primary w-full py-2.5 mt-2"
                 >
                   {loading ? 'Entrando...' : 'Entrar'}
                 </button>
               </form>
 
-              <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
+              <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-6">
                 Não tem conta?{' '}
                 <button
                   type="button"
@@ -159,9 +158,7 @@ export function Login() {
             </div>
           ) : (
             <div key="signup" className="animate-slide-in">
-              <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-6">
-                Criar sua conta
-              </h2>
+              <h2 className="sf-card-title mb-6">Criar sua conta</h2>
 
               <form onSubmit={handleSignup} className="space-y-4">
                 <div>
@@ -187,7 +184,7 @@ export function Login() {
                     autoComplete="username"
                     className={inputClass}
                   />
-                  <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">Apenas letras, números e underscore.</p>
+                  <p className="sf-hint">Apenas letras, números e underscore.</p>
                 </div>
 
                 <div>
@@ -216,9 +213,9 @@ export function Login() {
                     <button
                       type="button"
                       onClick={() => setShowPass(p => !p)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                     >
-                      {showPass ? '🙈' : '👁'}
+                      {showPass ? <EyeOff className="w-[18px] h-[18px]" /> : <Eye className="w-[18px] h-[18px]" />}
                     </button>
                   </div>
                 </div>
@@ -235,23 +232,14 @@ export function Login() {
                   />
                 </div>
 
-                {error && (
-                  <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3 text-sm text-red-700 dark:text-red-400 flex items-center gap-2">
-                    <span>✕</span>
-                    <span>{error}</span>
-                  </div>
-                )}
+                <ErrorBox />
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md mt-2"
-                >
+                <button type="submit" disabled={loading} className="sf-btn-primary w-full py-2.5 mt-2">
                   {loading ? 'Criando conta...' : 'Criar conta'}
                 </button>
               </form>
 
-              <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
+              <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-6">
                 <button
                   type="button"
                   onClick={() => switchMode('login')}
@@ -265,7 +253,7 @@ export function Login() {
         </div>
 
         {mode === 'login' && (
-          <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-6">
+          <p className="text-center text-xs text-slate-400 dark:text-slate-500 mt-6">
             Sem acesso? Crie sua conta ou fale com o administrador.
           </p>
         )}

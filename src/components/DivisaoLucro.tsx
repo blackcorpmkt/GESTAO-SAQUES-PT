@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronRight, Plus, Trash2, Inbox } from 'lucide-react'
 import { Lancamento } from '../types'
 import { Partner } from '../hooks/usePartners'
 import { LaunchCost, NewLaunchCost, MoedaCusto } from '../hooks/useLaunchCosts'
@@ -17,12 +17,8 @@ interface Props {
 
 const num = (s: string) => parseFloat(s.replace(',', '.')) || 0
 
-const inputClass = `border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm
-  bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100
-  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`
-
-const selectClass = `border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-2 text-sm
-  bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500`
+const inputClass = 'sf-input'
+const selectClass = 'sf-select'
 
 function iniciais(name: string): string {
   return name.split(' ').map(w => w[0] ?? '').join('').toUpperCase().slice(0, 2) || '?'
@@ -87,11 +83,11 @@ function LaunchRow({
   }
 
   return (
-    <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+    <div className="sf-card overflow-hidden">
       {/* Cabeçalho clicável */}
       <button
         onClick={() => setAberto(a => !a)}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors"
+        className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors"
       >
         <span className="text-slate-400 flex-shrink-0">
           {aberto ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
@@ -150,14 +146,14 @@ function LaunchRow({
               {moeda === 'USD' && (
                 <input type="text" inputMode="decimal" value={usd} onChange={e => setUsd(e.target.value)} placeholder="USD→EUR (0.92)" className={`${inputClass} sm:w-32 tabular-nums`} />
               )}
-              <button onClick={handleAdd} className="inline-flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors whitespace-nowrap">
+              <button onClick={handleAdd} className="sf-btn-primary">
                 <Plus className="w-4 h-4" /> Adicionar
               </button>
             </div>
           </div>
 
           {/* Resumo */}
-          <div className="rounded-xl border border-slate-100 dark:border-slate-700 p-4">
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/30 p-4">
             <Linha label="Faturamento bruto" eur={formatarEUR(brutoEur)} brl={brl(brutoEur)} />
             <Linha label="Custo gateway" eur={formatarEUR(gatewayEur)} />
             <Linha label="Outros custos" eur={formatarEUR(outrosEur)} brl={brl(outrosEur)} />
@@ -213,12 +209,12 @@ export function DivisaoLucro({ lancamentos, partners, costs, cotacao, onAddCost,
   return (
     <div className="space-y-5">
       {/* Resumo geral */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
-          <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">Resumo Geral</h2>
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Consolidado de todos os seus lançamentos</p>
+      <div className="sf-card overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700">
+          <h2 className="sf-card-title">Resumo Geral</h2>
+          <p className="sf-card-sub">Consolidado de todos os seus lançamentos</p>
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-slate-100 dark:bg-slate-700">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-slate-200 dark:bg-slate-700">
           {[
             { label: 'Total bruto', eur: totalBrutoEur },
             { label: 'Total de custos', eur: totalCustosEur },
@@ -226,7 +222,7 @@ export function DivisaoLucro({ lancamentos, partners, costs, cotacao, onAddCost,
           ].map(c => (
             <div key={c.label} className="bg-white dark:bg-slate-800 p-5">
               <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{c.label}</p>
-              <p className={`text-[22px] leading-tight font-bold tabular-nums mt-1 ${c.destaque ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>{brl(c.eur)}</p>
+              <p className={`font-display text-[22px] leading-tight font-semibold tabular-nums mt-1.5 tracking-[-0.02em] ${c.destaque ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>{brl(c.eur)}</p>
               <p className="text-sm text-slate-400 dark:text-slate-500 tabular-nums">{formatarEUR(c.eur)}</p>
             </div>
           ))}
@@ -250,14 +246,14 @@ export function DivisaoLucro({ lancamentos, partners, costs, cotacao, onAddCost,
 
       {/* Lista de lançamentos */}
       {!temCotacao && (
-        <div className="rounded-xl border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+        <div className="rounded-xl border border-amber-200 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
           Defina a cotação EUR/BRL nas Configurações para ver os valores em R$ e converter custos em BRL.
         </div>
       )}
 
       {lancamentos.length === 0 ? (
-        <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm text-center py-16">
-          <p className="text-4xl mb-3">📋</p>
+        <div className="sf-card text-center py-16">
+          <Inbox className="w-9 h-9 mx-auto mb-3 text-slate-300 dark:text-slate-600" />
           <p className="text-slate-400 dark:text-slate-500 text-sm">Nenhum lançamento para dividir ainda</p>
         </div>
       ) : (

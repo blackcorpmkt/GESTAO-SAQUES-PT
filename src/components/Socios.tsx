@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Pencil, Check, X } from 'lucide-react'
+import { Plus, Pencil, Check, X, Handshake } from 'lucide-react'
 import { Partner } from '../hooks/usePartners'
 
 interface Props {
@@ -10,9 +10,7 @@ interface Props {
   onToast: (msg: string, tipo?: 'sucesso' | 'erro' | 'info') => void
 }
 
-const inputClass = `w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm
-  bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100
-  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`
+const inputClass = 'sf-input'
 
 function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -79,16 +77,16 @@ export function Socios({ partners, loading, onAdd, onUpdate, onToast }: Props) {
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
-        <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">Sócios</h2>
-        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+    <div className="sf-card overflow-hidden">
+      <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700">
+        <h2 className="sf-card-title">Sócios</h2>
+        <p className="sf-card-sub">
           Seus sócios e percentuais — usados na divisão de lucro. {partners.length} cadastrado{partners.length !== 1 ? 's' : ''}.
         </p>
       </div>
 
       {/* Formulário de adição */}
-      <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60">
+      <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900/30">
         <div className="flex flex-col sm:flex-row gap-2">
           <input
             type="text"
@@ -106,11 +104,7 @@ export function Socios({ partners, loading, onAdd, onUpdate, onToast }: Props) {
             placeholder="%"
             className={`${inputClass} sm:w-28 tabular-nums`}
           />
-          <button
-            onClick={handleAdd}
-            disabled={salvando}
-            className="inline-flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors shadow-sm whitespace-nowrap"
-          >
+          <button onClick={handleAdd} disabled={salvando} className="sf-btn-primary">
             <Plus className="w-4 h-4" /> Adicionar
           </button>
         </div>
@@ -121,7 +115,7 @@ export function Socios({ partners, loading, onAdd, onUpdate, onToast }: Props) {
         <div className="text-center py-12 text-slate-400 dark:text-slate-500 text-sm animate-pulse">Carregando...</div>
       ) : partners.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-4xl mb-3">🤝</p>
+          <Handshake className="w-9 h-9 mx-auto mb-3 text-slate-300 dark:text-slate-600" />
           <p className="text-slate-400 dark:text-slate-500 text-sm">Nenhum sócio cadastrado ainda</p>
         </div>
       ) : (
@@ -165,7 +159,7 @@ export function Socios({ partners, loading, onAdd, onUpdate, onToast }: Props) {
 
       {/* Rodapé: soma total */}
       {!loading && partners.length > 0 && (
-        <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-700 flex justify-end">
+        <div className="px-5 py-3 border-t border-slate-200 dark:border-slate-700 flex justify-end">
           <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
             Soma total (ativos):{' '}
             <span className={totalAtivos === 100 ? 'font-semibold text-emerald-600 dark:text-emerald-400' : 'font-semibold text-amber-600 dark:text-amber-400'}>

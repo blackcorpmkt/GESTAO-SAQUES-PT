@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { Menu, Sun, Moon } from 'lucide-react'
+import { Menu, Sun, Moon, ChevronRight } from 'lucide-react'
 import { useAuth } from './contexts/AuthContext'
 import { Login } from './components/Login'
 import { Sidebar } from './components/Sidebar'
+import { BrandMark } from './components/BrandMark'
 import { Dashboard } from './components/Dashboard'
 import { LancamentoForm } from './components/LancamentoForm'
 import { LancamentosTable } from './components/LancamentosTable'
@@ -38,11 +39,12 @@ const TITLES: Record<string, string> = {
 function LoadingScreen() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl flex items-center justify-center text-white font-bold text-xl mx-auto mb-3 animate-pulse shadow-lg">
-          GS
+      <div className="flex flex-col items-center text-center">
+        <div className="animate-pulse mb-3">
+          <BrandMark size={56} />
         </div>
-        <p className="text-sm text-slate-400 dark:text-slate-500">Carregando...</p>
+        <p className="font-display text-base font-semibold text-slate-900 dark:text-white">SaqueFlow</p>
+        <p className="text-sm text-slate-400 dark:text-slate-500 mt-0.5">A carregar o painel…</p>
       </div>
     </div>
   )
@@ -90,7 +92,7 @@ function AppContent({ userId }: { userId: string }) {
 
       <div className={`transition-all duration-200 ${collapsed ? 'md:pl-16' : 'md:pl-60'}`}>
         {/* Topbar */}
-        <header className="sticky top-0 z-30 h-16 bg-white/85 dark:bg-slate-800/85 backdrop-blur border-b border-slate-200 dark:border-slate-700 flex items-center gap-3 px-4 sm:px-6">
+        <header className="sticky top-0 z-30 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center gap-4 px-4 sm:px-6 py-3.5">
           <button
             onClick={() => setMobileOpen(true)}
             className="md:hidden text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
@@ -98,17 +100,26 @@ function AppContent({ userId }: { userId: string }) {
           >
             <Menu className="w-6 h-6" />
           </button>
-          <h1 className="text-2xl font-semibold text-slate-800 dark:text-white flex-1 truncate">{pageTitle}</h1>
+          <div className="min-w-0 flex-1">
+            <h1 className="font-display text-[19px] font-semibold tracking-[-0.015em] text-slate-900 dark:text-white truncate">
+              {pageTitle}
+            </h1>
+            <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mt-px">
+              <span>Início</span>
+              <ChevronRight className="w-3 h-3" />
+              <span className="text-slate-700 dark:text-slate-200">{pageTitle}</span>
+            </div>
+          </div>
           <button
             onClick={toggleDarkMode}
             title={darkMode ? 'Modo claro' : 'Modo escuro'}
-            className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 transition-colors flex-shrink-0"
+            className="sf-icon-btn flex-shrink-0"
           >
-            {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            {darkMode ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
           </button>
         </header>
 
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
           <Routes>
             <Route
               path="dashboard"

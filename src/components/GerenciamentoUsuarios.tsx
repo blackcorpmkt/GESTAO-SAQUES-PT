@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { Plus, X, Users, Pencil, KeyRound } from 'lucide-react'
 import { UserRecord } from '../types/auth'
 import { useUsers } from '../hooks/useUsers'
 
@@ -12,9 +13,7 @@ type ModalState =
   | { type: 'edit'; user: UserRecord }
   | { type: 'resetPassword'; user: UserRecord }
 
-const inputClass = `w-full border border-gray-200 dark:border-gray-600 rounded-xl px-3.5 py-2.5 text-sm
-  bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100
-  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`
+const inputClass = 'sf-input'
 
 function ModalOverlay({ title, onClose, children }: {
   title: string
@@ -22,15 +21,15 @@ function ModalOverlay({ title, onClose, children }: {
   children: React.ReactNode
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-lg bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
-          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100">{title}</h3>
+    <div className="sf-modal-overlay">
+      <div className="sf-modal max-w-lg">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+          <h3 className="sf-card-title">{title}</h3>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+            className="w-8 h-8 grid place-items-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
           >
-            ✕
+            <X className="w-4 h-4" />
           </button>
         </div>
         <div className="p-6">{children}</div>
@@ -41,14 +40,14 @@ function ModalOverlay({ title, onClose, children }: {
 
 function RoleBadge({ role }: { role: 'admin' | 'user' }) {
   return role === 'admin'
-    ? <span className="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">Admin</span>
-    : <span className="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">Usuário</span>
+    ? <span className="sf-badge sf-badge-info">Admin</span>
+    : <span className="sf-badge sf-badge-neutral">Usuário</span>
 }
 
 function StatusBadge({ active }: { active: boolean }) {
   return active
-    ? <span className="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">Ativo</span>
-    : <span className="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400">Inativo</span>
+    ? <span className="sf-badge sf-badge-success">Ativo</span>
+    : <span className="sf-badge sf-badge-danger">Inativo</span>
 }
 
 function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
@@ -56,7 +55,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
     <button
       type="button"
       onClick={() => onChange(!value)}
-      className={`relative w-11 h-6 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${value ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'}`}
+      className={`relative w-11 h-6 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 ${value ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'}`}
     >
       <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${value ? 'translate-x-5' : ''}`} />
     </button>
@@ -197,83 +196,65 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Lista de usuários */}
-      <div className="rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+      <div className="sf-card overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700">
           <div>
-            <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">Usuários</h2>
+            <h2 className="sf-card-title">Usuários</h2>
             {!loading && (
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+              <p className="sf-card-sub">
                 {users.length} usuário{users.length !== 1 ? 's' : ''} cadastrado{users.length !== 1 ? 's' : ''}
               </p>
             )}
           </div>
-          <button
-            onClick={openCreate}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all shadow-sm hover:shadow-md flex items-center gap-2"
-          >
-            <span className="text-base leading-none">+</span>
-            <span>Novo Usuário</span>
+          <button onClick={openCreate} className="sf-btn-primary">
+            <Plus className="w-4 h-4" /> Novo Usuário
           </button>
         </div>
 
         {loading ? (
-          <div className="text-center py-12 text-gray-400 dark:text-gray-500 text-sm animate-pulse">
+          <div className="text-center py-12 text-slate-400 dark:text-slate-500 text-sm animate-pulse">
             Carregando...
           </div>
         ) : users.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-4xl mb-3">👤</p>
-            <p className="text-gray-400 dark:text-gray-500 text-sm">Nenhum usuário cadastrado</p>
+            <Users className="w-9 h-9 mx-auto mb-3 text-slate-300 dark:text-slate-600" />
+            <p className="text-slate-400 dark:text-slate-500 text-sm">Nenhum usuário cadastrado</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="sf-table">
               <thead>
-                <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Nome</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Username</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider hidden md:table-cell">E-mail</th>
-                  <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Perfil</th>
-                  <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="text-center px-5 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Ações</th>
+                <tr>
+                  <th>Nome</th>
+                  <th>Username</th>
+                  <th className="hidden md:table-cell">E-mail</th>
+                  <th className="!text-center">Perfil</th>
+                  <th className="!text-center">Status</th>
+                  <th className="!text-center">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
+              <tbody>
                 {users.map(u => (
-                  <tr
-                    key={u.userId}
-                    className={`transition-colors ${!u.active ? 'opacity-50' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}
-                  >
-                    <td className="px-5 py-3.5">
-                      <p className="font-medium text-gray-800 dark:text-gray-200">{u.displayName}</p>
+                  <tr key={u.userId} className={!u.active ? 'opacity-50' : ''}>
+                    <td>
+                      <p className="font-medium text-slate-800 dark:text-slate-200">{u.displayName}</p>
                     </td>
-                    <td className="px-4 py-3.5 text-gray-500 dark:text-gray-400">
-                      @{u.username}
-                    </td>
-                    <td className="px-4 py-3.5 text-gray-400 dark:text-gray-500 hidden md:table-cell text-xs">
-                      {u.email}
-                    </td>
-                    <td className="px-4 py-3.5 text-center">
-                      <RoleBadge role={u.role} />
-                    </td>
-                    <td className="px-4 py-3.5 text-center">
-                      <StatusBadge active={u.active} />
-                    </td>
-                    <td className="px-5 py-3.5">
+                    <td className="text-slate-500 dark:text-slate-400">@{u.username}</td>
+                    <td className="text-slate-400 dark:text-slate-500 hidden md:table-cell text-xs font-mono">{u.email}</td>
+                    <td className="text-center"><RoleBadge role={u.role} /></td>
+                    <td className="text-center"><StatusBadge active={u.active} /></td>
+                    <td>
                       <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => openEdit(u)}
-                          className="text-xs px-3 py-1.5 rounded-lg font-medium bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 transition-colors"
-                        >
-                          Editar
+                        <button onClick={() => openEdit(u)} className="sf-btn px-3 py-1.5 text-xs">
+                          <Pencil className="w-3.5 h-3.5" /> Editar
                         </button>
                         <button
                           onClick={() => openResetPassword(u)}
-                          className="text-xs px-3 py-1.5 rounded-lg font-medium bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400 transition-colors"
+                          className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/15 dark:hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 transition-colors"
                         >
-                          Reset Senha
+                          <KeyRound className="w-3.5 h-3.5" /> Reset Senha
                         </button>
                       </div>
                     </td>
@@ -291,7 +272,7 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Nome de exibição</label>
+                <label className="sf-label">Nome de exibição</label>
                 <input
                   type="text"
                   value={createForm.display_name}
@@ -302,7 +283,7 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Username</label>
+                <label className="sf-label">Username</label>
                 <input
                   type="text"
                   value={createForm.username}
@@ -314,7 +295,7 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">E-mail</label>
+              <label className="sf-label">E-mail</label>
               <input
                 type="email"
                 value={createForm.email}
@@ -325,7 +306,7 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Senha inicial</label>
+              <label className="sf-label">Senha inicial</label>
               <input
                 type="password"
                 value={createForm.password}
@@ -336,33 +317,24 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Perfil</label>
+              <label className="sf-label">Perfil</label>
               <select
                 value={createForm.role}
                 onChange={e => setCreateForm(p => ({ ...p, role: e.target.value as 'admin' | 'user' }))}
-                className={inputClass}
+                className={`${inputClass} w-full`}
               >
                 <option value="user">Usuário</option>
                 <option value="admin">Administrador</option>
               </select>
             </div>
 
-            {createError && (
-              <p className="text-xs text-red-600 dark:text-red-400">✕ {createError}</p>
-            )}
+            {createError && <p className="text-xs text-red-600 dark:text-red-400">✕ {createError}</p>}
 
             <div className="flex gap-3 pt-2">
-              <button
-                onClick={() => setModal(null)}
-                className="flex-1 px-4 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-              >
+              <button onClick={() => setModal(null)} className="sf-btn flex-1 py-2.5">
                 Cancelar
               </button>
-              <button
-                onClick={handleCreate}
-                disabled={submitting}
-                className="flex-1 px-4 py-2.5 text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white transition-colors shadow-sm"
-              >
+              <button onClick={handleCreate} disabled={submitting} className="sf-btn-primary flex-1 py-2.5">
                 {submitting ? 'Criando...' : 'Criar Usuário'}
               </button>
             </div>
@@ -375,7 +347,7 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
         <ModalOverlay title={`Editar — @${modal.user.username}`} onClose={() => setModal(null)}>
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Nome de exibição</label>
+              <label className="sf-label">Nome de exibição</label>
               <input
                 type="text"
                 value={editForm.display_name}
@@ -385,30 +357,21 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
               />
             </div>
 
-            <div className="flex items-center justify-between py-3 px-3.5 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-600">
+            <div className="flex items-center justify-between py-3 px-3.5 bg-slate-50 dark:bg-slate-900/40 rounded-lg border border-slate-200 dark:border-slate-700">
               <div>
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Conta ativa</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Usuários inativos não conseguem fazer login</p>
+                <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Conta ativa</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Usuários inativos não conseguem fazer login</p>
               </div>
               <Toggle value={editForm.active} onChange={v => setEditForm(p => ({ ...p, active: v }))} />
             </div>
 
-            {editError && (
-              <p className="text-xs text-red-600 dark:text-red-400">✕ {editError}</p>
-            )}
+            {editError && <p className="text-xs text-red-600 dark:text-red-400">✕ {editError}</p>}
 
             <div className="flex gap-3 pt-2">
-              <button
-                onClick={() => setModal(null)}
-                className="flex-1 px-4 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-              >
+              <button onClick={() => setModal(null)} className="sf-btn flex-1 py-2.5">
                 Cancelar
               </button>
-              <button
-                onClick={handleEdit}
-                disabled={submitting}
-                className="flex-1 px-4 py-2.5 text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white transition-colors shadow-sm"
-              >
+              <button onClick={handleEdit} disabled={submitting} className="sf-btn-primary flex-1 py-2.5">
                 {submitting ? 'Salvando...' : 'Salvar'}
               </button>
             </div>
@@ -420,14 +383,14 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
       {modal?.type === 'resetPassword' && (
         <ModalOverlay title={`Redefinir senha — @${modal.user.username}`} onClose={() => setModal(null)}>
           <div className="space-y-4">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               Defina uma nova senha para{' '}
-              <strong className="text-gray-700 dark:text-gray-300">{modal.user.displayName}</strong>.
+              <strong className="text-slate-700 dark:text-slate-300">{modal.user.displayName}</strong>.
               O usuário verá um aviso para alterá-la no próximo acesso.
             </p>
 
             <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Nova senha</label>
+              <label className="sf-label">Nova senha</label>
               <input
                 type="password"
                 value={resetForm.new_password}
@@ -439,7 +402,7 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Confirmar nova senha</label>
+              <label className="sf-label">Confirmar nova senha</label>
               <input
                 type="password"
                 value={resetForm.confirm_password}
@@ -449,21 +412,16 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
               />
             </div>
 
-            {resetError && (
-              <p className="text-xs text-red-600 dark:text-red-400">✕ {resetError}</p>
-            )}
+            {resetError && <p className="text-xs text-red-600 dark:text-red-400">✕ {resetError}</p>}
 
             <div className="flex gap-3 pt-2">
-              <button
-                onClick={() => setModal(null)}
-                className="flex-1 px-4 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-              >
+              <button onClick={() => setModal(null)} className="sf-btn flex-1 py-2.5">
                 Cancelar
               </button>
               <button
                 onClick={handleResetPassword}
                 disabled={submitting}
-                className="flex-1 px-4 py-2.5 text-sm font-semibold rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white transition-colors shadow-sm"
+                className="flex-1 py-2.5 inline-flex items-center justify-center gap-2 rounded-lg text-[13px] font-semibold border border-transparent bg-amber-600 hover:bg-amber-700 text-white shadow-sm transition-colors disabled:opacity-50"
               >
                 {submitting ? 'Redefinindo...' : 'Redefinir Senha'}
               </button>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Check, RotateCcw, Trash2, Pencil, X, Inbox } from 'lucide-react'
 import { Lancamento } from '../types'
 import { formatarEUR, formatarMoedaBR, parseDateBR, formatDateBR, getDiaSemanaVenda } from '../utils/formatacao'
 import { useAuth } from '../contexts/AuthContext'
@@ -14,30 +15,30 @@ interface Props {
 }
 
 function getRowStyle(l: Lancamento) {
-  if (l.status === 'recebido') return 'bg-gray-50 dark:bg-gray-800/50'
+  if (l.status === 'recebido') return 'bg-slate-50/60 dark:bg-slate-800/40'
   const hoje = formatDateBR(new Date())
   const amanha = (() => { const d = new Date(); d.setDate(d.getDate() + 1); return formatDateBR(d) })()
-  if (parseDateBR(l.data_recebimento) < parseDateBR(hoje)) return 'bg-red-50 dark:bg-red-950/30'
-  if (l.data_recebimento === hoje || l.data_recebimento === amanha) return 'bg-blue-50 dark:bg-blue-950/30'
-  return 'bg-amber-50 dark:bg-amber-950/20'
+  if (parseDateBR(l.data_recebimento) < parseDateBR(hoje)) return 'bg-red-50/60 dark:bg-red-500/10'
+  if (l.data_recebimento === hoje || l.data_recebimento === amanha) return 'bg-blue-50/60 dark:bg-blue-500/10'
+  return 'bg-amber-50/50 dark:bg-amber-500/[0.07]'
 }
 
 function StatusBadge({ l }: { l: Lancamento }) {
   const hoje = formatDateBR(new Date())
   if (l.status === 'recebido') {
-    return <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">✓ Recebido</span>
+    return <span className="sf-badge sf-badge-success"><span className="sf-dot" /> Recebido</span>
   }
   if (parseDateBR(l.data_recebimento) < parseDateBR(hoje)) {
-    return <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300">⚠ Vencido</span>
+    return <span className="sf-badge sf-badge-danger"><span className="sf-dot" /> Vencido</span>
   }
   const amanha = (() => { const d = new Date(); d.setDate(d.getDate() + 1); return formatDateBR(d) })()
   if (l.data_recebimento === hoje) {
-    return <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">📅 Hoje</span>
+    return <span className="sf-badge sf-badge-info"><span className="sf-dot" /> Hoje</span>
   }
   if (l.data_recebimento === amanha) {
-    return <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">📅 Amanhã</span>
+    return <span className="sf-badge sf-badge-info"><span className="sf-dot" /> Amanhã</span>
   }
-  return <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">⏳ Pendente</span>
+  return <span className="sf-badge sf-badge-warning"><span className="sf-dot" /> Pendente</span>
 }
 
 export function LancamentosTable({ lancamentos, onToggleStatus, onDelete, onUpdateCotacao, onToast }: Props) {
@@ -59,6 +60,12 @@ export function LancamentosTable({ lancamentos, onToggleStatus, onDelete, onUpda
     onUpdateCotacao(l.id, val)
     onToast(`Cotação do lançamento ${l.data_venda} atualizada!`, 'sucesso')
     setEditandoCotacaoId(null)
+  }
+
+  const counts = {
+    todos: lancamentos.length,
+    pendente: lancamentos.filter(l => l.status === 'pendente').length,
+    recebido: lancamentos.filter(l => l.status === 'recebido').length,
   }
 
   const filtrados = lancamentos
@@ -84,81 +91,78 @@ export function LancamentosTable({ lancamentos, onToggleStatus, onDelete, onUpda
   const totalFiltrado = filtrados.reduce((s, l) => s + l.valor_liquido_eur, 0)
   const totalBRLFiltrado = filtrados.reduce((s, l) => s + l.valor_brl, 0)
 
+  const chip = (id: Filtro, label: string) => (
+    <button onClick={() => setFiltro(id)} className={`sf-chip ${filtro === id ? 'sf-chip-active' : ''}`}>
+      {label}
+      <span className="sf-chip-count">{counts[id]}</span>
+    </button>
+  )
+
   return (
-    <div className="rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+    <div className="sf-card overflow-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 border-b border-slate-200 dark:border-slate-700">
         <div>
-          <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">Lançamentos</h2>
+          <h2 className="sf-card-title">Lançamentos</h2>
           {filtrados.length > 0 && (
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               {filtrados.length} registro{filtrados.length !== 1 ? 's' : ''} · {formatarMoedaBR(totalBRLFiltrado)} · {formatarEUR(totalFiltrado)}
             </p>
           )}
         </div>
-        <div className="flex gap-1.5 bg-gray-100 dark:bg-gray-700 p-1 rounded-xl">
-          {(['todos', 'pendente', 'recebido'] as Filtro[]).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFiltro(f)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                filtro === f
-                  ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-              }`}
-            >
-              {f === 'todos' ? 'Todos' : f === 'pendente' ? 'Pendentes' : 'Recebidos'}
-            </button>
-          ))}
+        <div className="flex gap-1.5">
+          {chip('todos', 'Todos')}
+          {chip('pendente', 'Pendentes')}
+          {chip('recebido', 'Recebidos')}
         </div>
       </div>
 
       {filtrados.length === 0 ? (
         <div className="text-center py-16">
-          <p className="text-4xl mb-3">📋</p>
-          <p className="text-gray-400 dark:text-gray-500 text-sm">Nenhum lançamento encontrado</p>
+          <Inbox className="w-9 h-9 mx-auto mb-3 text-slate-300 dark:text-slate-600" />
+          <p className="text-slate-400 dark:text-slate-500 text-sm">Nenhum lançamento encontrado</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="sf-table">
             <thead>
-              <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Lançamento</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Vendas</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Bruto</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Líquido</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Em R$</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Recebimento D+3</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="text-center px-5 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Ações</th>
+              <tr>
+                <th>Lançamento</th>
+                <th className="!text-right">Vendas</th>
+                <th className="!text-right">Bruto</th>
+                <th className="!text-right">Líquido</th>
+                <th className="!text-right">Em R$</th>
+                <th>Recebimento D+3</th>
+                <th className="!text-center">Status</th>
+                <th className="!text-center">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
+            <tbody>
               {filtrados.map(l => {
                 const dataVendaDate = parseDateBR(l.data_venda)
                 const diaSem = getDiaSemanaVenda(dataVendaDate)
                 return (
-                  <tr key={l.id} className={`${getRowStyle(l)} transition-colors`}>
-                    <td className="px-5 py-3.5">
-                      <p className="font-semibold text-gray-800 dark:text-gray-200">{l.data_venda}</p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500">{diaSem}</p>
+                  <tr key={l.id} className={getRowStyle(l)}>
+                    <td>
+                      <p className="font-semibold text-slate-800 dark:text-slate-200">{l.data_venda}</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500">{diaSem}</p>
                     </td>
-                    <td className="px-4 py-3.5 text-right">
-                      <span className="font-medium text-gray-700 dark:text-gray-300">{l.num_vendas}</span>
+                    <td className="text-right">
+                      <span className="font-medium text-slate-700 dark:text-slate-300 tabular-nums">{l.num_vendas}</span>
                     </td>
-                    <td className="px-4 py-3.5 text-right text-gray-500 dark:text-gray-400 tabular-nums">
+                    <td className="text-right text-slate-500 dark:text-slate-400 font-mono text-[13px]">
                       {formatarEUR(l.valor_bruto_eur)}
                     </td>
-                    <td className="px-4 py-3.5 text-right">
-                      <p className="font-semibold text-gray-800 dark:text-gray-200 tabular-nums">
+                    <td className="text-right">
+                      <p className="font-semibold text-slate-800 dark:text-slate-200 font-mono text-[13px]">
                         {formatarEUR(l.valor_liquido_eur)}
                       </p>
                       {showPct && (
-                        <p className="text-xs text-indigo-600 dark:text-indigo-400 tabular-nums mt-0.5">
+                        <p className="text-xs text-blue-600 dark:text-blue-400 font-mono mt-0.5">
                           {pct}% → {formatarEUR(l.valor_liquido_eur * pct / 100)}
                         </p>
                       )}
                     </td>
-                    <td className="px-4 py-3.5 text-right">
+                    <td className="text-right">
                       {editandoCotacaoId === l.id ? (
                         <div className="flex items-center justify-end gap-1">
                           <input
@@ -172,98 +176,79 @@ export function LancamentosTable({ lancamentos, onToggleStatus, onDelete, onUpda
                             }}
                             autoFocus
                             placeholder="5.83"
-                            className="w-20 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 text-xs text-right bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 tabular-nums"
+                            className="w-20 rounded-md border border-slate-200 dark:border-slate-600 px-2 py-1 text-xs text-right bg-white dark:bg-slate-900/40 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30 tabular-nums"
                           />
                           <button
                             onClick={() => confirmarCotacao(l)}
                             title="Confirmar nova cotação"
-                            className="w-6 h-6 flex items-center justify-center rounded-md bg-emerald-500 hover:bg-emerald-600 text-white text-xs transition-colors"
+                            className="w-6 h-6 grid place-items-center rounded-md bg-emerald-500 hover:bg-emerald-600 text-white transition-colors"
                           >
-                            ✓
+                            <Check className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => setEditandoCotacaoId(null)}
                             title="Cancelar"
-                            className="w-6 h-6 flex items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400 text-xs transition-colors"
+                            className="w-6 h-6 grid place-items-center rounded-md bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-500 dark:text-slate-400 transition-colors"
                           >
-                            ✕
+                            <X className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       ) : (
                         <div className="flex items-center justify-end gap-1.5">
                           <div className="text-right">
-                            <p className="font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums">
+                            <p className="font-semibold text-emerald-700 dark:text-emerald-400 font-mono text-[13px]">
                               {formatarMoedaBR(l.valor_brl)}
                             </p>
-                            <p className="text-xs text-gray-400 dark:text-gray-500 tabular-nums">
+                            <p className="text-xs text-slate-400 dark:text-slate-500 font-mono">
                               @ {l.cotacao_eur_brl.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </p>
                           </div>
                           <button
                             onClick={() => { setEditandoCotacaoId(l.id); setCotacaoEdit(String(l.cotacao_eur_brl)) }}
                             title="Editar cotação deste lançamento"
-                            className="w-6 h-6 flex items-center justify-center rounded-md text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                            className="w-6 h-6 grid place-items-center rounded-md text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/15 transition-colors"
                           >
-                            ✎
+                            <Pencil className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-3.5">
-                      <p className="font-medium text-gray-800 dark:text-gray-200">{l.data_recebimento}</p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500">{l.dia_semana_recebimento}</p>
+                    <td>
+                      <p className="font-medium text-slate-800 dark:text-slate-200">{l.data_recebimento}</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500">{l.dia_semana_recebimento}</p>
                     </td>
-                    <td className="px-4 py-3.5 text-center">
+                    <td className="text-center">
                       <StatusBadge l={l} />
                     </td>
-                    <td className="px-5 py-3.5">
+                    <td>
                       <div className="flex items-center justify-center gap-2">
                         {l.status === 'pendente' ? (
                           <button
                             onClick={() => handleToggle(l)}
                             title="Confirmar que o saque foi recebido"
-                            className="
-                              inline-flex items-center gap-1.5
-                              bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700
-                              text-white text-xs font-semibold
-                              px-3 py-1.5 rounded-lg
-                              shadow-sm hover:shadow-md
-                              transition-all duration-150
-                              whitespace-nowrap
-                            "
+                            className="sf-btn-success px-3 py-1.5 text-xs"
                           >
-                            <span>✓</span>
-                            <span>Confirmar Saque</span>
+                            <Check className="w-3.5 h-3.5" /> Confirmar Saque
                           </button>
                         ) : (
                           <button
                             onClick={() => handleToggle(l)}
                             title="Reverter para pendente"
-                            className="
-                              inline-flex items-center gap-1.5
-                              bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600
-                              text-gray-600 dark:text-gray-300 text-xs font-medium
-                              px-3 py-1.5 rounded-lg
-                              transition-all duration-150
-                              whitespace-nowrap
-                            "
+                            className="sf-btn px-3 py-1.5 text-xs"
                           >
-                            <span>↩</span>
-                            <span>Desfazer</span>
+                            <RotateCcw className="w-3.5 h-3.5" /> Desfazer
                           </button>
                         )}
                         <button
                           onClick={() => handleDelete(l.id)}
                           title={confirmDelete === l.id ? 'Clique para confirmar exclusão' : 'Excluir lançamento'}
-                          className={`
-                            text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all
-                            ${confirmDelete === l.id
+                          className={`w-8 h-8 grid place-items-center rounded-lg transition-all ${
+                            confirmDelete === l.id
                               ? 'bg-red-500 text-white animate-pulse'
-                              : 'bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-500 dark:text-red-400'
-                            }
-                          `}
+                              : 'text-red-500 hover:bg-red-50 dark:hover:bg-red-500/15'
+                          }`}
                         >
-                          {confirmDelete === l.id ? '!' : '🗑'}
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -275,11 +260,11 @@ export function LancamentosTable({ lancamentos, onToggleStatus, onDelete, onUpda
         </div>
       )}
 
-      <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-700 flex flex-wrap gap-4 text-xs text-gray-400 dark:text-gray-500">
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-blue-200 dark:bg-blue-800 inline-block" /> Hoje / Amanhã</span>
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-red-200 dark:bg-red-800 inline-block" /> Vencido</span>
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-amber-200 dark:bg-amber-800 inline-block" /> Pendente</span>
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-gray-200 dark:bg-gray-600 inline-block" /> Recebido</span>
+      <div className="px-5 py-3 border-t border-slate-200 dark:border-slate-700 flex flex-wrap gap-4 text-xs text-slate-400 dark:text-slate-500">
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-blue-300 dark:bg-blue-500/60 inline-block" /> Hoje / Amanhã</span>
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-red-300 dark:bg-red-500/60 inline-block" /> Vencido</span>
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-amber-300 dark:bg-amber-500/60 inline-block" /> Pendente</span>
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-slate-300 dark:bg-slate-600 inline-block" /> Recebido</span>
       </div>
     </div>
   )

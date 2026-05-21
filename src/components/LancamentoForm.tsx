@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Plus } from 'lucide-react'
 import { Lancamento } from '../types'
 import { addDiasUteis, calcularLiquido } from '../utils/calculos'
 import { formatDateBR, formatDateInput, getDiaSemana, formatarEUR, formatarMoedaBR } from '../utils/formatacao'
@@ -73,80 +74,79 @@ export function LancamentoForm({ cotacao, taxaGateway, taxaFixaEur, onAdd, onToa
   const temPreview = bruto > 0 && numV > 0
 
   return (
-    <div className="rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm p-6">
-      <div className="flex items-center gap-2 mb-5">
-        <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center text-blue-600 dark:text-blue-400 text-sm">
-          +
-        </div>
-        <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">Novo Lançamento</h2>
+    <div className="sf-card p-5 sm:p-6">
+      <div className="flex items-center gap-3 mb-5">
+        <span className="sf-kpi-icon sf-kpi-icon-blue">
+          <Plus className="w-[18px] h-[18px]" />
+        </span>
+        <h2 className="sf-card-title">Novo Lançamento</h2>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Data do Lançamento</label>
+            <label className="sf-label">Data do Lançamento</label>
             <input
               type="date"
               value={dataVenda}
               onChange={e => setDataVenda(e.target.value)}
-              className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-3.5 py-2.5 text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="sf-input"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Nº de Vendas Aprovadas</label>
+            <label className="sf-label">Nº de Vendas Aprovadas</label>
             <input
               type="number"
               min="1"
               value={numVendas}
               onChange={e => setNumVendas(e.target.value)}
               placeholder="Ex: 12"
-              className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-3.5 py-2.5 text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="sf-input tabular-nums"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Valor Bruto (€)</label>
+            <label className="sf-label">Valor Bruto (€)</label>
             <input
               type="text"
               inputMode="decimal"
               value={valorBruto}
               onChange={e => setValorBruto(e.target.value)}
               placeholder="Ex: 359.64"
-              className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-3.5 py-2.5 text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="sf-input tabular-nums"
             />
           </div>
         </div>
 
         {temPreview && (
-          <div className="rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border border-blue-100 dark:border-blue-800 p-4 animate-fade-in">
-            <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-3 uppercase tracking-wider">Preview do Lançamento</p>
+          <div className="rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/30 p-4 animate-fade-in">
+            <p className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 mb-3 uppercase tracking-wider">
+              Preview do Lançamento
+            </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div>
-                <p className="text-xs text-blue-500 dark:text-blue-400 mb-0.5">Líquido estimado</p>
-                <p className="text-base font-bold text-blue-800 dark:text-blue-200">{formatarEUR(liquido)}</p>
-                <p className="text-xs text-blue-400 dark:text-blue-500">- {formatarEUR(descontoTotal)} taxas</p>
+                <p className="text-xs text-blue-500/80 dark:text-blue-400 mb-0.5">Líquido estimado</p>
+                <p className="text-base font-semibold text-blue-900 dark:text-blue-100 font-mono">{formatarEUR(liquido)}</p>
+                <p className="text-xs text-blue-400 dark:text-blue-500/80">- {formatarEUR(descontoTotal)} taxas</p>
               </div>
               <div>
-                <p className="text-xs text-blue-500 dark:text-blue-400 mb-0.5">Em reais</p>
-                <p className="text-base font-bold text-blue-800 dark:text-blue-200">{cotacao ? formatarMoedaBR(valorBrl) : '—'}</p>
+                <p className="text-xs text-blue-500/80 dark:text-blue-400 mb-0.5">Em reais</p>
+                <p className="text-base font-semibold text-blue-900 dark:text-blue-100 font-mono">{cotacao ? formatarMoedaBR(valorBrl) : '—'}</p>
               </div>
               <div>
-                <p className="text-xs text-blue-500 dark:text-blue-400 mb-0.5">Recebimento D+3</p>
-                <p className="text-base font-bold text-blue-800 dark:text-blue-200">{dataRecebStr}</p>
+                <p className="text-xs text-blue-500/80 dark:text-blue-400 mb-0.5">Recebimento D+3</p>
+                <p className="text-base font-semibold text-blue-900 dark:text-blue-100">{dataRecebStr}</p>
               </div>
               <div>
-                <p className="text-xs text-blue-500 dark:text-blue-400 mb-0.5">Dia da semana</p>
-                <p className="text-base font-bold text-blue-800 dark:text-blue-200">{diaSemanaReceb}</p>
+                <p className="text-xs text-blue-500/80 dark:text-blue-400 mb-0.5">Dia da semana</p>
+                <p className="text-base font-semibold text-blue-900 dark:text-blue-100">{diaSemanaReceb}</p>
               </div>
             </div>
           </div>
         )}
 
         <div className="flex justify-end">
-          <button
-            type="submit"
-            className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md flex items-center gap-2"
-          >
-            <span>+</span> Adicionar Lançamento
+          <button type="submit" className="sf-btn-primary px-5 py-2.5">
+            <Plus className="w-4 h-4" /> Adicionar Lançamento
           </button>
         </div>
       </form>

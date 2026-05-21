@@ -1,7 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
+import { Lock, SlidersHorizontal, Database, Download, Upload, AlertTriangle, Eye, EyeOff, type LucideIcon } from 'lucide-react'
 import { Config, Lancamento } from '../types'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabaseClient'
+
+type Tone = 'blue' | 'green' | 'amber' | 'violet'
 
 interface Props {
   config: Config
@@ -13,12 +16,14 @@ interface Props {
   onToast: (msg: string, tipo?: 'sucesso' | 'erro' | 'info') => void
 }
 
-function Section({ titulo, icon, children }: { titulo: string; icon: string; children: React.ReactNode }) {
+function Section({ titulo, Icon, tone, children }: { titulo: string; Icon: LucideIcon; tone: Tone; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm p-6">
-      <div className="flex items-center gap-2 mb-5">
-        <span className="text-lg">{icon}</span>
-        <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">{titulo}</h2>
+    <div className="sf-card p-5 sm:p-6">
+      <div className="flex items-center gap-3 mb-5">
+        <span className={`sf-kpi-icon sf-kpi-icon-${tone}`}>
+          <Icon className="w-[18px] h-[18px]" />
+        </span>
+        <h2 className="sf-card-title">{titulo}</h2>
       </div>
       {children}
     </div>
@@ -28,9 +33,9 @@ function Section({ titulo, icon, children }: { titulo: string; icon: string; chi
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{label}</label>
+      <label className="sf-label">{label}</label>
       {children}
-      {hint && <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{hint}</p>}
+      {hint && <p className="sf-hint">{hint}</p>}
     </div>
   )
 }
@@ -64,9 +69,7 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
   const [showPasswords, setShowPasswords] = useState(false)
   const [trocandoSenha, setTrocandoSenha] = useState(false)
 
-  const inputClass = `w-full border border-gray-200 dark:border-gray-600 rounded-xl px-3.5 py-2.5 text-sm
-    bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100
-    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`
+  const inputClass = 'sf-input'
 
   // Aviso de senha padrão: qualquer usuário que ainda não trocou a senha
   const usingDefaultPassword = !currentUser?.passwordChanged
@@ -209,11 +212,11 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
   const taxaFixaNum = parseFloat(taxaFixaInput) || 0
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Aviso senha padrão */}
       {usingDefaultPassword && (
-        <div className="rounded-2xl border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-5 py-4 flex items-start gap-3">
-          <span className="text-xl flex-shrink-0 mt-0.5">⚠️</span>
+        <div className="rounded-2xl border border-amber-200 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 px-5 py-4 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5 text-amber-500" />
           <div>
             <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
               Você está usando a senha padrão do administrador
@@ -226,7 +229,7 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
       )}
 
       {/* Segurança da conta */}
-      <Section titulo="Segurança da Conta" icon="🔐">
+      <Section titulo="Segurança da Conta" Icon={Lock} tone="blue">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
           <Field label="Senha atual">
             <input
@@ -256,28 +259,23 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
             />
           </Field>
         </div>
-        {erroSenha && (
-          <p className="text-xs text-red-600 dark:text-red-400 mb-3">✕ {erroSenha}</p>
-        )}
+        {erroSenha && <p className="text-xs text-red-600 dark:text-red-400 mb-3">✕ {erroSenha}</p>}
         <div className="flex flex-wrap gap-3 items-center">
-          <button
-            onClick={handleTrocarSenha}
-            disabled={trocandoSenha}
-            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md"
-          >
+          <button onClick={handleTrocarSenha} disabled={trocandoSenha} className="sf-btn-primary px-5 py-2.5">
             {trocandoSenha ? 'Alterando...' : 'Alterar Senha'}
           </button>
           <button
             onClick={() => setShowPasswords(p => !p)}
-            className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
           >
-            {showPasswords ? '🙈 Ocultar senhas' : '👁 Mostrar senhas'}
+            {showPasswords ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            {showPasswords ? 'Ocultar senhas' : 'Mostrar senhas'}
           </button>
         </div>
       </Section>
 
       {/* Gateway */}
-      <Section titulo="Gateway de Pagamento" icon="⚙️">
+      <Section titulo="Gateway de Pagamento" Icon={SlidersHorizontal} tone="violet">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <Field label="Taxa percentual (%)" hint="Desconto proporcional ao valor bruto. Padrão: 28%">
             <input
@@ -295,7 +293,7 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
           </Field>
         </div>
 
-        <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-800 rounded-xl p-3 text-xs text-blue-700 dark:text-blue-300 mb-5 font-mono">
+        <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/30 rounded-lg p-3 text-xs text-blue-700 dark:text-blue-300 mb-5 font-mono">
           Líquido = Bruto − (Bruto × {taxaNum}%) − (€{taxaFixaNum} × nº vendas)
         </div>
 
@@ -313,40 +311,33 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
               type="text" inputMode="decimal"
               value={cotacaoInput} onChange={e => setCotacaoInput(e.target.value)}
               placeholder="Ex: 5.83"
-              className={inputClass}
+              className={`${inputClass} tabular-nums`}
             />
           </Field>
         </div>
 
-        <div className="bg-gray-50 dark:bg-gray-700/40 border border-gray-100 dark:border-gray-600 rounded-xl p-4 mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700 rounded-lg p-4 mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Aplicar cotação aos pendentes</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Aplicar cotação aos pendentes</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
               Recalcula o valor em R$ de todos os lançamentos pendentes usando a cotação acima.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={handleAplicarCotacaoPendentes}
-            className="whitespace-nowrap bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md"
-          >
+          <button type="button" onClick={handleAplicarCotacaoPendentes} className="sf-btn-success px-4 py-2.5">
             Aplicar a todos os pendentes
           </button>
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <button
-            onClick={handleSalvarConfig}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md"
-          >
+          <button onClick={handleSalvarConfig} className="sf-btn-primary px-5 py-2.5">
             Salvar Configurações
           </button>
           <button
             onClick={handleReset}
-            className={`text-sm font-medium px-5 py-2.5 rounded-xl transition-all ${
+            className={`px-5 py-2.5 rounded-lg text-[13px] font-medium transition-all ${
               confirmReset
                 ? 'bg-red-500 text-white animate-pulse'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                : 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60'
             }`}
           >
             {confirmReset ? 'Confirmar Reset' : 'Resetar Padrão'}
@@ -355,26 +346,19 @@ export function Configuracoes({ config, onUpdateConfig, onResetConfig, lancament
       </Section>
 
       {/* Dados e backup */}
-      <Section titulo="Dados e Backup" icon="💾">
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+      <Section titulo="Dados e Backup" Icon={Database} tone="green">
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">
           {lancamentos.length} lançamento{lancamentos.length !== 1 ? 's' : ''} armazenado{lancamentos.length !== 1 ? 's' : ''} no Supabase.
         </p>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mb-5">
+        <p className="text-xs text-slate-400 dark:text-slate-500 mb-5">
           Os dados são sincronizados em tempo real e ficam seguros na nuvem.
         </p>
         <div className="flex flex-wrap gap-3">
-          <button
-            onClick={handleExportarJSON}
-            disabled={lancamentos.length === 0}
-            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md"
-          >
-            ↓ Exportar Backup JSON
+          <button onClick={handleExportarJSON} disabled={lancamentos.length === 0} className="sf-btn-success px-5 py-2.5">
+            <Download className="w-4 h-4" /> Exportar Backup JSON
           </button>
-          <button
-            onClick={() => fileRef.current?.click()}
-            className="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium px-5 py-2.5 rounded-xl transition-colors"
-          >
-            ↑ Importar JSON
+          <button onClick={() => fileRef.current?.click()} className="sf-btn px-5 py-2.5">
+            <Upload className="w-4 h-4" /> Importar JSON
           </button>
           <input ref={fileRef} type="file" accept=".json" onChange={handleImportarJSON} className="hidden" />
         </div>
