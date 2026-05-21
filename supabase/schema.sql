@@ -48,14 +48,39 @@ CREATE TABLE IF NOT EXISTS public.settings (
   updated_at         timestamptz NOT NULL DEFAULT now()
 );
 
+-- Sócios por usuário (percentuais usados na Divisão de Lucro)
+CREATE TABLE IF NOT EXISTS public.partners (
+  id           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id      uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name         text        NOT NULL,
+  percentage   numeric     NOT NULL DEFAULT 0,
+  active       boolean     NOT NULL DEFAULT true,
+  created_at   timestamptz NOT NULL DEFAULT now()
+);
+
+-- Custos por lançamento (BRL/USD/EUR, convertidos para EUR em amount_eur)
+CREATE TABLE IF NOT EXISTS public.launch_costs (
+  id            uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  launch_id     uuid        NOT NULL REFERENCES public.launches(id) ON DELETE CASCADE,
+  user_id       uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  description   text        NOT NULL,
+  amount        numeric     NOT NULL,
+  currency      text        NOT NULL DEFAULT 'BRL' CHECK (currency IN ('BRL', 'USD', 'EUR')),
+  exchange_rate numeric     NOT NULL DEFAULT 1,
+  amount_eur    numeric     NOT NULL,
+  created_at    timestamptz NOT NULL DEFAULT now()
+);
+
 
 -- ─────────────────────────────────────────
 -- 2. ATIVAR ROW LEVEL SECURITY
 -- ─────────────────────────────────────────
 
-ALTER TABLE public.users    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.launches ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.users        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.launches     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.settings     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.partners     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.launch_costs ENABLE ROW LEVEL SECURITY;
 
 
 -- ─────────────────────────────────────────
