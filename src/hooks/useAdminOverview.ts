@@ -21,8 +21,12 @@ export interface AdminTotals {
   users: number
 }
 
-// Depende das políticas RLS de admin já existentes no Supabase
-// (SELECT em users e launches liberado para admin). Não cria nada novo no banco.
+// O admin lê via RPC (funções SECURITY DEFINER já existentes no Supabase), porque a
+// RLS restringe cada usuário ao próprio perfil/lançamentos — queries diretas só
+// devolveriam os dados do próprio admin. Não cria nem altera nada no banco.
+//   • get_all_users_for_admin(): lista TODOS os usuários (inclui recém-cadastrados
+//     pela tela pública, mesmo sem lançamentos).
+//   • get_admin_overview(): resumo financeiro agregado por usuário.
 export function useAdminOverview(onError?: (msg: string) => void) {
   const [rows, setRows] = useState<AdminUserRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -31,38 +35,49 @@ export function useAdminOverview(onError?: (msg: string) => void) {
     let cancelado = false
     ;(async () => {
       setLoading(true)
-      const [usersRes, launchesRes] = await Promise.all([
-        supabase.from('users').select('id, username, display_name'),
-        supabase.from('launches').select('user_id, net_value_eur, net_value_brl, status'),
+      const [usersRes, overviewRes] = await Promise.all([
+        supabase.rpc('get_all_users_for_admin'),
+        supabase.rpc('get_admin_overview'),
       ])
       if (cancelado) return
-      if (usersRes.error || launchesRes.error) {
+      if (usersRes.error || overviewRes.error) {
         onError?.('Erro ao carregar painel admin')
         setLoading(false)
         return
       }
 
       const byUser = new Map<string, AdminUserRow>()
-      for (const u of usersRes.data ?? []) {
-        byUser.set(u.id as string, {
-          userId: u.id as string,
+
+      // 1) Semeia com a lista completa de usuários, zerando o financeiro. Garante que
+      //    contas sem lançamentos também apareçam na tabela.
+      for (const u of (usersRes.data ?? []) as Record<string, unknown>[]) {
+        const id = u.id as string
+        byUser.set(id, {
+          userId: id,
           displayName: (u.display_name as string) || (u.username as string),
           username: u.username as string,
           pendingEur: 0, pendingBrl: 0, receivedEur: 0, receivedBrl: 0, count: 0,
         })
       }
-      for (const l of launchesRes.data ?? []) {
-        const row = byUser.get(l.user_id as string)
-        if (!row) continue
-        row.count++
-        if (l.status === 'received') {
-          row.receivedEur += Number(l.net_value_eur)
-          row.receivedBrl += Number(l.net_value_brl)
-        } else {
-          row.pendingEur += Number(l.net_value_eur)
-          row.pendingBrl += Number(l.net_value_brl)
+
+      // 2) Sobrepõe os totais financeiros agregados por usuário. Se o overview trouxer
+      //    um user_id ausente da lista (caso de borda), cria a linha mesmo assim.
+      for (const o of (overviewRes.data ?? []) as Record<string, unknown>[]) {
+        const id = o.user_id as string
+        const row: AdminUserRow = byUser.get(id) ?? {
+          userId: id,
+          displayName: (o.display_name as string) || (o.username as string),
+          username: o.username as string,
+          pendingEur: 0, pendingBrl: 0, receivedEur: 0, receivedBrl: 0, count: 0,
         }
+        row.pendingBrl = Number(o.total_pending_brl) || 0
+        row.pendingEur = Number(o.total_pending_eur) || 0
+        row.receivedBrl = Number(o.total_received_brl) || 0
+        row.receivedEur = Number(o.total_received_eur) || 0
+        row.count = Number(o.total_launches) || 0
+        byUser.set(id, row)
       }
+
       setRows([...byUser.values()])
       setLoading(false)
     })()
