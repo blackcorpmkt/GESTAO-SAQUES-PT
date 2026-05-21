@@ -121,60 +121,17 @@ GRANT EXECUTE ON FUNCTION public.get_active_partners() TO authenticated;
 
 
 -- ─────────────────────────────────────────
--- 5. POLÍTICAS RLS — users
+-- 5. POLÍTICAS RLS
 -- ─────────────────────────────────────────
-
--- Cada usuário lê e edita apenas o próprio perfil
-CREATE POLICY "users_select_own" ON public.users
-  FOR SELECT USING (auth.uid() = id);
-
-CREATE POLICY "users_update_own" ON public.users
-  FOR UPDATE USING (auth.uid() = id);
-
--- Admin pode ler todos os perfis
-CREATE POLICY "users_select_admin" ON public.users
-  FOR SELECT USING (public.is_admin());
-
--- Admin pode atualizar qualquer perfil (necessário para gerenciamento de usuários)
-CREATE POLICY "users_update_admin" ON public.users
-  FOR UPDATE USING (public.is_admin());
+--
+-- ⚠️  ATENÇÃO: as políticas RLS (CREATE POLICY) NÃO ficam neste arquivo.
+-- Elas estão configuradas e mantidas MANUALMENTE no Supabase Dashboard
+-- (Authentication > Policies). Não recrie, altere ou versione políticas
+-- aqui nem em migrations — qualquer alteração quebra o sistema em produção.
 
 
 -- ─────────────────────────────────────────
--- 6. POLÍTICAS RLS — launches
--- ─────────────────────────────────────────
-
-CREATE POLICY "launches_select_own" ON public.launches
-  FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "launches_insert_own" ON public.launches
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "launches_update_own" ON public.launches
-  FOR UPDATE USING (auth.uid() = user_id);
-
-CREATE POLICY "launches_delete_own" ON public.launches
-  FOR DELETE USING (auth.uid() = user_id);
-
--- Admin pode ler todos os lançamentos
-CREATE POLICY "launches_select_admin" ON public.launches
-  FOR SELECT USING (public.is_admin());
-
-
--- ─────────────────────────────────────────
--- 7. POLÍTICAS RLS — settings
--- ─────────────────────────────────────────
-
-CREATE POLICY "settings_all_own" ON public.settings
-  FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-
--- Admin pode ler todas as configurações
-CREATE POLICY "settings_select_admin" ON public.settings
-  FOR SELECT USING (public.is_admin());
-
-
--- ─────────────────────────────────────────
--- 8. SEED — Criação do Admin Padrão
+-- 6. SEED — Criação do Admin Padrão
 -- ─────────────────────────────────────────
 --
 -- PASSO 1: Acesse o Supabase Dashboard
