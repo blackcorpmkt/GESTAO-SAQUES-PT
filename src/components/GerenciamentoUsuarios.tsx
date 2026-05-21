@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react'
-import { Plus, X, Users, Pencil, KeyRound } from 'lucide-react'
+import { Plus, X, Users, Pencil, KeyRound, Trash2, AlertTriangle } from 'lucide-react'
 import { UserRecord } from '../types/auth'
 import { useUsers } from '../hooks/useUsers'
+import { useAuth } from '../contexts/AuthContext'
 
 interface Props {
   onToast: (msg: string, tipo?: 'sucesso' | 'erro' | 'info') => void
@@ -12,6 +13,7 @@ type ModalState =
   | { type: 'create' }
   | { type: 'edit'; user: UserRecord }
   | { type: 'resetPassword'; user: UserRecord }
+  | { type: 'delete'; user: UserRecord }
 
 const inputClass = 'sf-input'
 
@@ -63,11 +65,16 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
 }
 
 export function GerenciamentoUsuarios({ onToast }: Props) {
+  const { currentUser } = useAuth()
   const handleError = useCallback((msg: string) => onToast(msg, 'erro'), [onToast])
-  const { users, loading, createUser, updateUser, resetPassword } = useUsers(handleError)
+  const { users, loading, createUser, updateUser, resetPassword, deleteUser } = useUsers(handleError)
 
   const [modal, setModal] = useState<ModalState>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  // Só usuários comuns (role 'user') que não sejam o próprio admin logado podem ser
+  // excluídos. Admins (inclusive a própria conta) ficam protegidos.
+  const canDelete = (u: UserRecord) => u.role !== 'admin' && u.userId !== currentUser?.userId
 
   // Estado do formulário de criação
   const [createForm, setCreateForm] = useState({
@@ -106,6 +113,24 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
     setResetForm({ new_password: '', confirm_password: '' })
     setResetError('')
     setModal({ type: 'resetPassword', user })
+  }
+
+  const openDelete = (user: UserRecord) => {
+    setModal({ type: 'delete', user })
+  }
+
+  const handleDelete = async () => {
+    if (!modal || modal.type !== 'delete') return
+    setSubmitting(true)
+    const result = await deleteUser(modal.user.userId)
+    setSubmitting(false)
+    if (!result.success) {
+      onToast(result.error ?? 'Erro ao excluir usuário.', 'erro')
+      return
+    }
+    const nome = modal.user.displayName
+    setModal(null)
+    onToast(`Usuário ${nome} excluído.`, 'sucesso')
   }
 
   const handleCreate = async () => {
@@ -256,6 +281,15 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
                         >
                           <KeyRound className="w-3.5 h-3.5" /> Reset Senha
                         </button>
+                        {canDelete(u) && (
+                          <button
+                            onClick={() => openDelete(u)}
+                            title="Excluir usuário"
+                            className="w-8 h-8 grid place-items-center rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-500/15 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -424,6 +458,33 @@ export function GerenciamentoUsuarios({ onToast }: Props) {
                 className="flex-1 py-2.5 inline-flex items-center justify-center gap-2 rounded-lg text-[13px] font-semibold border border-transparent bg-amber-600 hover:bg-amber-700 text-white shadow-sm transition-colors disabled:opacity-50"
               >
                 {submitting ? 'Redefinindo...' : 'Redefinir Senha'}
+              </button>
+            </div>
+          </div>
+        </ModalOverlay>
+      )}
+
+      {/* Modal: Excluir usuário */}
+      {modal?.type === 'delete' && (
+        <ModalOverlay title="Excluir usuário" onClose={() => setModal(null)}>
+          <div className="space-y-5">
+            <div className="flex items-start gap-3">
+              <span className="w-10 h-10 flex-shrink-0 rounded-lg grid place-items-center bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-400">
+                <AlertTriangle className="w-5 h-5" />
+              </span>
+              <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                Tem certeza que deseja excluir o usuário{' '}
+                <strong className="text-slate-900 dark:text-white">{modal.user.displayName}</strong>?
+                Essa ação é irreversível e apagará todos os dados do usuário incluindo lançamentos e sócios.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => setModal(null)} className="sf-btn flex-1 py-2.5">
+                Cancelar
+              </button>
+              <button onClick={handleDelete} disabled={submitting} className="sf-btn-danger flex-1 py-2.5">
+                <Trash2 className="w-4 h-4" /> {submitting ? 'Excluindo...' : 'Excluir'}
               </button>
             </div>
           </div>

@@ -81,5 +81,16 @@ export function useUsers(onError?: (msg: string) => void) {
     return { success: true }
   }, [])
 
-  return { users, loading, createUser, updateUser, resetPassword, refreshUsers: fetchUsers }
+  // Exclui via Edge Function delete-user (admin only). Em caso de sucesso remove da
+  // lista local — sem refetch, para a linha sumir na hora.
+  const deleteUser = useCallback(async (userId: string): Promise<{ success: boolean; error?: string }> => {
+    const { data: result, error } = await supabase.functions.invoke('delete-user', { body: { user_id: userId } })
+    if (error || result?.error) {
+      return { success: false, error: result?.error ?? 'Erro ao excluir usuário.' }
+    }
+    setUsers(prev => prev.filter(u => u.userId !== userId))
+    return { success: true }
+  }, [])
+
+  return { users, loading, createUser, updateUser, resetPassword, deleteUser, refreshUsers: fetchUsers }
 }
