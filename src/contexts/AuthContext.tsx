@@ -2,11 +2,19 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import { supabase } from '../lib/supabaseClient'
 import { UserProfile } from '../types/auth'
 
+interface SignUpInput {
+  displayName: string
+  username: string
+  email: string
+  password: string
+}
+
 interface AuthContextValue {
   currentUser: UserProfile | null
   loading: boolean
   isAuthenticated: boolean
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>
+  signUp: (input: SignUpInput) => Promise<{ success: boolean; error?: string }>
   logout: () => Promise<void>
   refreshProfile: () => Promise<void>
 }
@@ -84,6 +92,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { success: true }
   }, [])
 
+  const signUp = useCallback(async (input: SignUpInput): Promise<{ success: boolean; error?: string }> => {
+    const email = input.email.trim().toLowerCase()
+    const password = input.password
+
+    // Cria conta via Edge Function (service role): cria no Auth + grava perfil/configurações.
+    // role é forçada para 'user' no servidor — cadastro público nunca cria admin.
+    const { data, error } = await supabase.functions.invoke('public-signup', {
+      body: {
+        display_name: input.displayName.trim(),
+        username: input.username.trim().toLowerCase(),
+        email,
+        password,
+      },
+    })
+
+    if (error) {
+      // Mensagem específica vem no corpo da resposta de erro da função
+      let msg = 'Erro ao criar conta. Tente novamente.'
+      try {
+        const ctx = (error as { context?: Response }).context
+        const b = ctx && typeof ctx.json === 'function' ? await ctx.json() : null
+        if (b?.error) msg = b.error
+      } catch { /* mantém mensagem genérica */ }
+      return { success: false, error: msg }
+    }
+    if (!data?.success) {
+      return { success: false, error: data?.error ?? 'Erro ao criar conta.' }
+    }
+
+    // Conta criada → autentica para abrir a sessão e cair no /dashboard
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+    if (signInError) {
+      return { success: false, error: 'Conta criada! Faça login para entrar.' }
+    }
+
+    return { success: true }
+  }, [])
+
   const logout = useCallback(async () => {
     await supabase.auth.signOut()
     setCurrentUser(null)
@@ -102,6 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading,
       isAuthenticated: currentUser !== null,
       login,
+      signUp,
       logout,
       refreshProfile,
     }}>
