@@ -129,6 +129,66 @@ GRANT EXECUTE ON FUNCTION public.get_active_partners() TO authenticated;
 
 
 -- ─────────────────────────────────────────
+-- 4c. FUNÇÃO: get_admin_profit_by_partner()
+-- Lucro consolidado por sócio (NOME) em TODAS as contas, para o painel /admin/lucros.
+-- SECURITY DEFINER contorna a RLS (que restringe cada usuário aos próprios dados).
+-- Cálculo por lançamento:  lucro = net_value_eur − Σ(launch_costs.amount_eur)
+-- Distribuição:            lucro_socio = lucro × (partners.percentage / 100), só ATIVOS
+-- BRL:                     lucro_socio_eur × exchange_rate do próprio lançamento
+-- Agregação:               soma por partners.name (mesmo nome em contas distintas soma)
+-- Guarda: só retorna linhas se o chamador (auth.uid()) for admin; senão vem vazio.
+-- ─────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION public.get_admin_profit_by_partner()
+RETURNS TABLE (
+  partner_name      text,
+  total_profit_eur  numeric,
+  total_profit_brl  numeric
+)
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+AS $$
+  WITH launch_profit AS (
+    SELECT
+      l.id,
+      l.user_id,
+      l.exchange_rate,
+      l.net_value_eur - COALESCE((
+        SELECT SUM(c.amount_eur)
+        FROM public.launch_costs c
+        WHERE c.launch_id = l.id
+      ), 0) AS profit_eur
+    FROM public.launches l
+  ),
+  distributed AS (
+    SELECT
+      p.name AS partner_name,
+      lp.profit_eur * (p.percentage / 100.0)                    AS profit_eur,
+      lp.profit_eur * (p.percentage / 100.0) * lp.exchange_rate AS profit_brl
+    FROM launch_profit lp
+    JOIN public.partners p
+      ON p.user_id = lp.user_id
+     AND p.active = true
+  )
+  SELECT
+    d.partner_name,
+    SUM(d.profit_eur)::numeric AS total_profit_eur,
+    SUM(d.profit_brl)::numeric AS total_profit_brl
+  FROM distributed d
+  WHERE EXISTS (
+    SELECT 1 FROM public.users au
+    WHERE au.id = auth.uid() AND au.role = 'admin'
+  )
+  GROUP BY d.partner_name
+  ORDER BY total_profit_eur DESC;
+$$;
+
+-- Apenas autenticados (a guarda interna restringe o resultado a admins)
+GRANT EXECUTE ON FUNCTION public.get_admin_profit_by_partner() TO authenticated;
+
+
+-- ─────────────────────────────────────────
 -- 5. POLÍTICAS RLS
 -- ─────────────────────────────────────────
 --

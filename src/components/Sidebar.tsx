@@ -6,7 +6,7 @@ import {
   FileText,
   Handshake,
   Users,
-  ShieldCheck,
+  TrendingUp,
   Settings,
   LogOut,
   ChevronLeft,
@@ -37,13 +37,17 @@ interface Item {
 }
 
 const ITEMS: Item[] = [
-  { to: '/dashboard', label: 'Painel', Icon: LayoutDashboard, group: 'Operação' },
+  // Operação
+  { to: '/dashboard', label: 'Dashboard', Icon: LayoutDashboard, group: 'Operação', userOnly: true },
+  { to: '/admin', label: 'Dashboard', Icon: LayoutDashboard, group: 'Operação', adminOnly: true },
   { to: '/lancamentos', label: 'Lançamentos', Icon: ListOrdered, group: 'Operação', userOnly: true },
   { to: '/divisao-lucro', label: 'Divisão de Lucro', Icon: PieChart, group: 'Operação', userOnly: true },
   { to: '/relatorio', label: 'Relatório', Icon: FileText, group: 'Operação', userOnly: true },
-  { to: '/socios', label: 'Sócios', Icon: Handshake, group: 'Gestão', userOnly: true },
+  // Gestão
+  { to: '/admin/lucros', label: 'Lucros', Icon: TrendingUp, group: 'Gestão', adminOnly: true },
   { to: '/usuarios', label: 'Usuários', Icon: Users, group: 'Gestão', adminOnly: true },
-  { to: '/admin', label: 'Admin', Icon: ShieldCheck, group: 'Gestão', adminOnly: true },
+  { to: '/socios', label: 'Sócios', Icon: Handshake, group: 'Gestão', userOnly: true },
+  // Sistema
   { to: '/configuracoes', label: 'Configurações', Icon: Settings, group: 'Sistema' },
 ]
 
@@ -113,6 +117,7 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
                   <NavLink
                     key={to}
                     to={to}
+                    end
                     onClick={onCloseMobile}
                     title={collapsed ? label : undefined}
                     className={({ isActive }) =>

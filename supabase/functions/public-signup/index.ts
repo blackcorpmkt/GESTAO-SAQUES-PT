@@ -106,6 +106,22 @@ Deno.serve(async (req: Request) => {
       return json({ success: false, error: 'Erro ao criar configurações.' })
     }
 
+    // Sócio padrão: o dono da conta entra como sócio de 100% (gerenciável depois,
+    // ao adicionar outros sócios). Garante que toda conta já nasce com uma divisão.
+    const { error: partnerError } = await supabaseAdmin.from('partners').insert({
+      user_id: userId,
+      name: display_name,
+      percentage: 100,
+      active: true,
+    })
+    if (partnerError) {
+      // rollback completo: remove configurações + perfil + Auth
+      await supabaseAdmin.from('settings').delete().eq('user_id', userId)
+      await supabaseAdmin.from('users').delete().eq('id', userId)
+      await supabaseAdmin.auth.admin.deleteUser(userId)
+      return json({ success: false, error: 'Erro ao criar sócio padrão.' })
+    }
+
     return json({ success: true, userId })
   } catch (e) {
     return json({ success: false, error: String(e) }, 500)

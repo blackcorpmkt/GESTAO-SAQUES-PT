@@ -11,6 +11,7 @@ import { LancamentosTable } from './components/LancamentosTable'
 import { DivisaoLucro } from './components/DivisaoLucro'
 import { Socios } from './components/Socios'
 import { AdminPanel } from './components/AdminPanel'
+import { AdminLucros } from './components/AdminLucros'
 import { Relatorio } from './components/Relatorio'
 import { Configuracoes } from './components/Configuracoes'
 import { GerenciamentoUsuarios } from './components/GerenciamentoUsuarios'
@@ -32,7 +33,8 @@ const TITLES: Record<string, string> = {
   '/relatorio': 'Relatório',
   '/socios': 'Sócios',
   '/usuarios': 'Usuários',
-  '/admin': 'Admin',
+  '/admin': 'Dashboard',
+  '/admin/lucros': 'Lucros',
   '/configuracoes': 'Configurações',
 }
 
@@ -124,14 +126,14 @@ function AppContent({ userId }: { userId: string }) {
             <Route
               path="dashboard"
               element={
-                <>
-                  <Dashboard
-                    lancamentos={lancamentos}
-                    config={config}
-                    onUpdateConfig={updateConfig}
-                  />
-                  {/* Admin não faz lançamentos */}
-                  {!isAdmin && (
+                // Admin não tem dashboard de operação: seu "Dashboard" são os totais em /admin
+                isAdmin ? <Navigate to="/admin" replace /> : (
+                  <>
+                    <Dashboard
+                      lancamentos={lancamentos}
+                      config={config}
+                      onUpdateConfig={updateConfig}
+                    />
                     <LancamentoForm
                       cotacao={cotacao}
                       taxaGateway={config.taxa_gateway}
@@ -139,8 +141,8 @@ function AppContent({ userId }: { userId: string }) {
                       onAdd={addLancamento}
                       onToast={addToast}
                     />
-                  )}
-                </>
+                  </>
+                )
               }
             />
 
@@ -251,6 +253,15 @@ function AppContent({ userId }: { userId: string }) {
               element={
                 currentUser?.role === 'admin'
                   ? <AdminPanel onToast={addToast} />
+                  : <Navigate to="/dashboard" replace />
+              }
+            />
+
+            <Route
+              path="admin/lucros"
+              element={
+                currentUser?.role === 'admin'
+                  ? <AdminLucros onToast={addToast} />
                   : <Navigate to="/dashboard" replace />
               }
             />
